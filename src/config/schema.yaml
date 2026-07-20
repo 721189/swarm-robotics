@@ -1,0 +1,24 @@
+# Swarm Robotics Unified Simulation Config Schema
+
+simulation:
+  seed: 42
+  bounds: [-50.0, 50.0]  # [min_x, max_x] and [min_y, max_y]
+  dt: 0.1
+  max_frames: 300
+  algorithm: "reynolds"   # "reynolds", "stigmergy", "cbba"
+
+agents:
+  types:
+    - name: "base"
+      count: 30
+      params:
+        speed: 1.5
+        sense_radius: 5.0
+        battery: 100.0
+        drain: 0.05
+
+objectives:
+  count: 5
+  positions: []          # Optional list of [x, y] coordinates, e.g. [[15.0, 85.0], [50.0, 50.0]]
+
+threats: []              # List of threats (used for CBBA), e.g. [{id: 0, x: 30.0, y: 40.0, radius: 15.0, strength: 60.0}]
