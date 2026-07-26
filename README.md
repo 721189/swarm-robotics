@@ -1,3 +1,9 @@
+<img width="1536" height="754" alt="robustness stress test" src="https://github.com/user-attachments/assets/393d8ffe-6495-4d02-a424-84352d6c1276" />
+<img width="1536" height="754" alt="robustness stress test" src="https://github.com/user-attachments/assets/fba80b40-4386-437d-8b36-f07042704581" />
+
+
+
+
 # Swarm Robotics Simulation
 
 A Python-based multi-agent simulation exploring how complex collective 
