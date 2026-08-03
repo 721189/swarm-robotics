@@ -2,4 +2,3 @@
 *.pyc
 .pytest_cache/
 test_reynolds.gif
-*.csv
