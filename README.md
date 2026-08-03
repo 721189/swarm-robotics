@@ -121,4 +121,4 @@ defence and exploration contexts.
 Inspired by research in distributed robotics, stigmergy, 
 and multi-agent systems.
 
-Started: March 2026 | Author: Shivam Singh | India.
+From July 2026 | Author: Shivam Singh | India.
