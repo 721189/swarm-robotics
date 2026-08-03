@@ -50,7 +50,8 @@ def build_default_config(algo: str, num_robots: int, frames: int, seed: int) -> 
 def parse_args():
     parser = argparse.ArgumentParser(description="Unified Swarm Robotics Simulation CLI Framework")
     parser.add_argument("--config", type=str, default=None, help="Path to config file (yaml/json)")
-    parser.add_argument("--algo", type=str, default="reynolds", choices=["reynolds", "stigmergy", "cbba"], help="Swarm algorithm model")
+    # Do not set a hard default here so we can detect whether the user explicitly provided --algo.
+    parser.add_argument("--algo", type=str, default=None, choices=["reynolds", "stigmergy", "cbba"], help="Swarm algorithm model")
     parser.add_argument("--robots", type=int, default=30, help="Number of robots (overrides default/config)")
     parser.add_argument("--frames", type=int, default=200, help="Number of animation frames")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for replication")
@@ -66,12 +67,14 @@ def main():
     if args.config:
         print(f"Loading configuration from {args.config}...")
         config = SwarmConfig.from_file(args.config)
-        # Apply CLI overrides if specifically requested
-        if args.algo:
+        # Only override the algorithm when the user explicitly passed --algo on the CLI.
+        if args.algo is not None:
             config.simulation.algorithm = args.algo
     else:
-        print(f"Using default configurations for algorithm: {args.algo}...")
-        config = build_default_config(args.algo, args.robots, args.frames, args.seed)
+        # When there's no config file, derive the algorithm from the CLI if present; otherwise default to 'reynolds'.
+        algo_choice = args.algo if args.algo is not None else "reynolds"
+        print(f"Using default configurations for algorithm: {algo_choice}...")
+        config = build_default_config(algo_choice, args.robots, args.frames, args.seed)
 
     print("Initialising Swarm Simulation Engine...")
     sim = SwarmSimulation(config)
