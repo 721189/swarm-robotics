@@ -2,9 +2,6 @@
 <img width="1536" height="754" alt="heterogeneous" src="https://github.com/user-attachments/assets/23b3699a-1121-4fb4-8b6d-ad9814390c11" />
 <img width="1536" height="754" alt="robustness stress test" src="https://github.com/user-attachments/assets/393d8ffe-6495-4d02-a424-84352d6c1276" />
 
-
-
-
 # Swarm Robotics Simulation
 
 A Python-based multi-agent simulation exploring how complex collective 
@@ -26,43 +23,46 @@ Simulates a swarm of 30 autonomous robots that:
 
 ## Key Concepts Implemented
 
- Concept  Description 
-
- Reynolds Rules  Cohesion, Separation, Alignment 
- Local Sensing  Each robot senses neighbors within radius=8 
- Voronoi Partitioning  Dynamic territory assignment per robot 
- Emergent Behavior  No central controller  order from local rules |
-| Multi-Agent System | 30 independent agents with shared environment
-
-
-
-
-
+| Concept | Description |
+|---|---|
+| Reynolds Rules | Cohesion, Separation, Alignment |
+| Local Sensing | Each robot senses neighbors within radius=8 |
+| Voronoi Partitioning | Dynamic territory assignment per robot |
+| Emergent Behavior | No central controller — order from local rules |
+| Multi-Agent System | 30 independent agents with shared environment |
 
 
 ## Files
 
- File Description 
- `swarm_neighbour.py`  Core Robot class with sensing and decision logic
- `swarm_visualisation.py`  Real-time color-coded animation (matplotlib) 
- `voronoi_demo.py` | Live Voronoi territory visualization 
- `trial_runner.py`  Automated 30-trial data collection 
- `swarm_trial_data_.csv  Raw experimental data from trials 
+| File | Description |
+|---|---|
+| `swarm_visualisation.py` | Core Robot class (sensing, decision logic) + real-time animation |
+| `voronoi_demo.py` | Voronoi-style territory visualization |
+| `swarm_neighbour.py` | Small utility: neighbor bearing/direction classification |
+| `heterogeneous_swam.py`, `dynamicfeatures.py` | Standalone stigmergy prototypes (superseded by `src/algorithms/stigmergy.py`) |
+| `CBBAandSAM_feature.py` | Standalone CBBA + SAM-threat prototype (superseded by `src/algorithms/cbba.py`) |
+| `run_framework.py` | Unified CLI — run reynolds/stigmergy/cbba via config or flags |
+| `src/` | Framework: config schema, base agent, algorithms, async renderer, metrics |
+| `tests/test_framework.py` | Unit tests for config parsing + all 3 algorithm modes |
+
 
 ## Experimental Results (30-Agent Trials)
 
 ### Run 1
- Metric  Value 
 
- Avg frames to stability  31.5 
- Avg consensus frame  22.2  Avg boundary crossings  5.8 
+| Metric | Value |
+|---|---|
+| Avg frames to stability | 33.37 |
+| Avg consensus frame | 26.33 |
+| Avg boundary crossings | 7.53 |
 
 ### Run 2
- Metric  Value 
 
- Avg frames to stability  30.4 
- Avg consensus frame  23.6 
-Avg boundary crossings  9.9 
+| Metric | Value |
+|---|---|
+| Avg frames to stability | 30.4 |
+| Avg consensus frame | 23.6 |
+| Avg boundary crossings | 9.9 |
 
 ### Key Findings
 
@@ -73,7 +73,7 @@ positional lock-in across all trials.
 
 2. Outlier Behavior
 Trial 27 (Run 2): 190 boundary crossings vs avg 9.9
-Trial 10 (Run 1): 56 boundary crossings vs avg 5.8
+Trial 19 (Run 1): 55 boundary crossings vs avg 7.53
 Hypothesis: High-density random initialization creates chaotic 
 cluster dynamics that take significantly longer to resolve.
 
@@ -84,30 +84,32 @@ All 30 robots consistently reach comfortable state
 ## How To Run
 
 ```bash
-pip install matplotlib numpy
+# Install dependencies
+pip install -r requirements.txt
 
 # Run the visualization
 python swarm_visualisation.py
 
-# Run Voronoi simulation  
+# Run Voronoi simulation
 python voronoi_demo.py
 
-# Run 30-trial data collection
-python trial_runner.py
-
+# Run experiments / frameworks (headless example)
+python run_framework.py --algo cbba --headless --frames 200 --csv results.csv
+python run_framework.py --algo reynolds
+```
 
 ## Roadmap
 
 - Basic Robot class with movement and battery
--  Local sensing via Euclidean distance
--  Reynolds Rules implementation
+- Local sensing via Euclidean distance
+- Reynolds Rules implementation
 - Real-time color-coded visualization
 - Voronoi territory partitioning
--  30-agent experimental trials with metrics
--  3 neighbor-selection variant comparison
--  Unknown map exploration
--  Obstacle avoidance
--  Inter-robot communication protocol
+- 30-agent experimental trials with metrics
+- 3 neighbor-selection variant comparison
+- Unknown map exploration
+- Obstacle avoidance
+- Inter-robot communication protocol
 - Hardware prototype (Raspberry Pi)
 
 ## Background
@@ -120,4 +122,3 @@ Inspired by research in distributed robotics, stigmergy,
 and multi-agent systems.
 
 Started: March 2026 | Author: Shivam Singh | India.
-```
