@@ -2,3 +2,4 @@ numpy
 matplotlib
 pyyaml
 pillow
+streamlit
