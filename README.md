@@ -41,9 +41,10 @@ Simulates a swarm of 30 autonomous robots that:
 | `swarm_neighbour.py` | Small utility: neighbor bearing/direction classification |
 | `heterogeneous_swam.py`, `dynamicfeatures.py` | Standalone stigmergy prototypes (superseded by `src/algorithms/stigmergy.py`) |
 | `CBBAandSAM_feature.py` | Standalone CBBA + SAM-threat prototype (superseded by `src/algorithms/cbba.py`) |
-| `run_framework.py` | Unified CLI — run reynolds/stigmergy/cbba via config or flags |
-| `src/` | Framework: config schema, base agent, algorithms, async renderer, metrics |
+| `run_framework.py` | **Unified CLI framework** — run Reynolds/Stigmergy/CBBA via YAML config or CLI flags |
+| `src/` | Core framework: config schema, base agent, algorithms, async renderer, metrics logger |
 | `tests/test_framework.py` | Unit tests for config parsing + all 3 algorithm modes |
+| `requirements.txt` | Python dependencies (numpy, matplotlib, pyyaml, pillow) |
 
 
 ## Experimental Results (30-Agent Trials)
@@ -83,19 +84,72 @@ All 30 robots consistently reach comfortable state
 
 ## How To Run
 
+### 1. Install Dependencies
 ```bash
-# Install dependencies
 pip install -r requirements.txt
+```
 
-# Run the visualization
+### 2. Run Quick Demos
+```bash
+# Real-time Reynolds flocking simulation
 python swarm_visualisation.py
 
-# Run Voronoi simulation
+# Voronoi territory visualization
 python voronoi_demo.py
+```
 
-# Run experiments / frameworks (headless example)
-python run_framework.py --algo cbba --headless --frames 200 --csv results.csv
+### 3. Run Framework (CLI-Based)
+
+The unified framework `run_framework.py` supports three algorithms: **Reynolds**, **Stigmergy**, and **CBBA**.
+
+#### Reynolds Flocking (Default)
+```bash
+# Visual mode with default config (30 robots, 200 frames)
 python run_framework.py --algo reynolds
+
+# Headless with custom robot count and save metrics
+python run_framework.py --algo reynolds --robots 50 --frames 300 --headless --csv results/reynolds_trial_20260804_143022.csv
+```
+
+#### Stigmergy (Scout-Worker Cooperative)
+```bash
+# Visual mode
+python run_framework.py --algo stigmergy
+
+# Headless with metrics logging
+python run_framework.py --algo stigmergy --headless --frames 500 --csv results/stigmergy_trial_20260804_143022.csv
+```
+
+#### CBBA (Combat Task Assignment with Threats)
+```bash
+# Visual mode
+python run_framework.py --algo cbba
+
+# Headless with animation export and metrics
+python run_framework.py --algo cbba --headless --frames 400 --out results/cbba_animation.gif --csv results/cbba_trial_20260804_143022.csv
+```
+
+### 4. Run Framework (Config-Based)
+
+For complex experiments, use YAML config files:
+```bash
+python run_framework.py --config configs/reynolds_30agents.yaml
+
+# Override algorithm if needed
+python run_framework.py --config configs/stigmergy_base.yaml --algo cbba
+```
+
+### CSV Output & Metrics
+
+When using `--csv <path>`, the simulation saves timestamped frame-by-frame metrics:
+- **Example filename:** `results/reynolds_trial_20260804_143022.csv`
+- **Contents:** Frame index, algorithm, agent state, stability metrics, boundary crossings
+- **Usage:** Import into pandas/Excel for post-run analysis
+
+```python
+import pandas as pd
+df = pd.read_csv('results/reynolds_trial_20260804_143022.csv')
+print(df.head())
 ```
 
 ## Roadmap
