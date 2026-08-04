@@ -2,7 +2,7 @@
 swarm_visualisation.py. Same Robot logic (lonely / comfortable / crowded),
 just parametrized with sliders instead of hardcoded values, and rendered
 frame-by-frame instead of via matplotlib.animation (which doesn't run in a
-browser). Deploy as-is to Streamlit Community Cloud.
+browser). Deploy as-is to Streamlit Community Cloud
 """
 
 import time
