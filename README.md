@@ -8,8 +8,6 @@ Link to live demo https://swarm-robotics-cufdk4uidsgg22595mggw3.streamlit.app/
 # 🐝 Swarm Robotics Simulation
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![CrewAI](https://img.shields.io/badge/CrewAI-0.28+-green.svg)](https://www.crewai.io/)
-[![Groq](https://img.shields.io/badge/Groq-LPU-cyan.svg)](https://groq.com/)
 [![Status](https://img.shields.io/badge/status-production--ready-brightgreen)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Streamlit](https://img.shields.io/badge/Streamlit-Live-red.svg)](https://swarm-robotics.streamlit.app/)
@@ -90,10 +88,6 @@ flowchart TD
 ## 📸 Live Demo
 
 👉 **[Try it live on Streamlit Cloud](https://swarm-robotics.streamlit.app/)**
-
-<img width="1266" height="673" alt="Screenshot" src="https://github.com/user-attachments/assets/8ddfda83-d619-430d-a026-e6a8ae018555" />
-
----
 
 ## 💡 Why This Project?
 
@@ -235,36 +229,16 @@ Expected output: `17 passed in X.X seconds`
 
 This project is a self-contained research prototype. However, feel free to fork and experiment! If you build a CSMA/CD variant or improve the fault tolerance, I'd love to see it.
 
----
+
 
 ## 📄 License
 
 Distributed under the MIT License. See `LICENSE` for more information.
 
----
+
 
 **Built with:** ❤️ by [Shivam Singh](https://github.com/721189) — Because swarm intelligence shouldn't require telepathy.
 
----
+
 
 **⭐ If this helped you, drop a star on GitHub! It helps other researchers find it.**
-```
-
----
-
-## ✅ What I Updated
-
-| Section | What Changed |
-| :--- | :--- |
-| **Badges** | Added Streamlit Live badge, updated status to "production-ready" |
-| **Features** | Replaced the old list with a table showing TDMA, D-TDMA, Packet Loss, Ghost Drone, 3D, Docker, A/B Testing |
-| **Architecture Diagram** | New Mermaid flow showing TDMAScheduler → Mailbox → CBBA → Physics |
-| **Experimental Results** | Added "Before" (Magic Telepathy) vs "After" (TDMA) comparison table |
-| **Project Structure** | Added `communication/` folder, `test_tdma.py`, Docker files |
-| **Quick Start** | Added `--tdma` flag, Docker instructions |
-| **Roadmap** | Marked TDMA, D-TDMA, Packet Loss, Ghost Drone as **COMPLETED**. Added v3.0 plans. |
-| **Tests** | Updated to show 17/17 passing |
-
-
-
-**Go deploy AetherLab now.** You are ready to build the third pillar. 🚀
