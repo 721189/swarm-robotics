@@ -42,10 +42,21 @@ Simulates a swarm of 30 autonomous robots that:
 | `swarm_neighbour.py` | Small utility: neighbor bearing/direction classification |
 | `heterogeneous_swam.py`, `dynamicfeatures.py` | Standalone stigmergy prototypes (superseded by `src/algorithms/stigmergy.py`) |
 | `CBBAandSAM_feature.py` | Standalone CBBA + SAM-threat prototype (superseded by `src/algorithms/cbba.py`) |
+| `streamlit_cbba_demo.py` | **Interactive CBBA Streamlit Wrapper** — visualizes auction-based task allocation and runs TDMA A/B tests |
 | `run_framework.py` | **Unified CLI framework** — run Reynolds/Stigmergy/CBBA via YAML config or CLI flags |
-| `src/` | Core framework: config schema, base agent, algorithms, async renderer, metrics logger |
-| `tests/test_framework.py` | Unit tests for config parsing + all 3 algorithm modes |
-| `requirements.txt` | Python dependencies (numpy, matplotlib, pyyaml, pillow) |
+| `src/` | Core framework: config schema, base agent, algorithms, communication (TDMA), async renderer, metrics logger |
+| `tests/` | Unit tests for config parsing, algorithm modes, and TDMA scheduler (`test_tdma.py`) |
+| `requirements.txt` | Python dependencies (numpy, matplotlib, pyyaml, pillow, streamlit) |
+
+## Realistic TDMA Communication Engine
+
+We have integrated a realistic **TDMA (Time-Division Multiple Access)** communication layer that sits between the simulation clock and the agents' CBBA consensus engines:
+
+- **TDMA Scheduler (`src/communication/tdma_scheduler.py`)**: Allocates exclusive transmission time slots to individual drones (e.g. 50ms slots).
+- **Telemetry Mailbox & Packet Aging**: Drones buffer incoming telemetry (position, battery, current task, local bidding ledger) in local mailboxes. Telemetry packets older than a threshold (e.g., 2.0s) are dropped to simulate packet timeouts.
+- **CBBA Consensus over TDMA**: Gossip consensus bid-synchronization occurs exclusively upon actual packet reception, showcasing slower, realistic consensus convergence.
+- **A/B Testing UI**: Use the toggle in the interactive Streamlit demo (`streamlit_cbba_demo.py`) to visually A/B test magical telepathy vs. restricted TDMA radio, comparing consensus convergence times.
+
 
 
 ## Experimental Results (30-Agent Trials)

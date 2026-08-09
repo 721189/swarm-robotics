@@ -6,6 +6,7 @@ from typing import Dict, Any, List
 
 from src.core.simulation_engine import SwarmSimulation
 from src.config.config import SwarmConfig, SimParamsConfig, AgentConfig, ObjectiveConfig, ThreatConfig
+from src.communication.tdma_scheduler import TDMAScheduler
 
 st.set_page_config(page_title="CBBA Swarm Task Allocation Demo", layout="wide")
 
@@ -23,8 +24,14 @@ with st.sidebar:
     seed = st.number_input("Random seed", value=42, step=1)
     
     st.markdown("---")
+    st.header("Communication Settings")
+    use_tdma = st.checkbox("🚧 Enable Realistic TDMA Radio (Slower Consensus)", value=False)
+    slot_duration_ms = st.slider("TDMA Slot Duration (ms)", 10, 200, 50, disabled=not use_tdma)
+    
+    st.markdown("---")
     st.markdown("**CBBA Agent Defaults:**")
     st.markdown("- Speed: `1.5`\n- Max Force: `0.2`\n- Comm Range: `25.0`\n- Separation Weight: `1.5`\n- SAM Repulsion Weight: `4.5`")
+
 
 def build_cbba_config(num_drones: int, num_objectives: int, num_threats: int, threat_radius: float, seed_val: int) -> SwarmConfig:
     sim = SimParamsConfig(
@@ -135,22 +142,80 @@ if st.button("Run CBBA Simulation", type="primary", use_container_width=True):
     # Run simulation steps while tracking stats frame-by-frame
     first_assignment_frame = {}
     completed_objectives = set()
+    consensus_time = None
 
     with st.spinner("Running CBBA Auction Simulation..."):
-        # We will run the step-by-step loop
-        for frame_idx in range(frames):
-            sim.step(0.1)
-            # Track when each drone is first assigned a task
-            for agent in sim.agents:
-                if agent.assigned_task_id is not None and agent.agent_id not in first_assignment_frame:
-                    first_assignment_frame[agent.agent_id] = frame_idx
-                    
-            # Check for objectives reached (within 3.0 distance of any drone)
-            for agent in sim.agents:
-                for obj in sim.objectives:
-                    dist = math.hypot(agent.x - obj.x, agent.y - obj.y)
-                    if dist <= 3.0:
-                        completed_objectives.add(obj.obj_id)
+        if use_tdma:
+            tdma_scheduler = TDMAScheduler(num_drones=num_drones, slot_duration_ms=slot_duration_ms)
+            
+            for frame_idx in range(frames):
+                # Step A: Determine who is the master of this millisecond
+                current_speaker_id = tdma_scheduler.get_current_speaker()
+                broadcast_packet = None
+
+                # Step B: The "Transmission" Event (Only 1 drone broadcasts)
+                if current_speaker_id is not None and current_speaker_id < len(sim.agents):
+                    speaker_agent = sim.agents[current_speaker_id]
+                    if speaker_agent.alive:
+                        broadcast_packet = speaker_agent.prepare_broadcast(tdma_scheduler.current_time)
+
+                # Step C: The "Reception" Event (All other drones listen)
+                if broadcast_packet is not None:
+                    for agent in sim.agents:
+                        if agent.agent_id != current_speaker_id and agent.alive:
+                            agent.receive_broadcast(current_speaker_id, broadcast_packet)
+
+                # Step D: Agent Decision Making (Using ONLY the mailbox)
+                for agent in sim.agents:
+                    if not agent.alive:
+                        continue
+                    perceived_swarm_state = agent.get_perceived_world(tdma_scheduler.current_time)
+                    agent.step(dt=0.1, perceived_swarm=perceived_swarm_state, simulation=sim)
+
+                # Step E: Advance the clock
+                tdma_scheduler.update(dt=0.1)
+
+                # Track when each drone is first assigned a task
+                for agent in sim.agents:
+                    if agent.assigned_task_id is not None and agent.agent_id not in first_assignment_frame:
+                        first_assignment_frame[agent.agent_id] = frame_idx
+                        
+                # Check for objectives reached (within 3.0 distance of any drone)
+                for agent in sim.agents:
+                    for obj in sim.objectives:
+                        dist = math.hypot(agent.x - obj.x, agent.y - obj.y)
+                        if dist <= 3.0:
+                            completed_objectives.add(obj.obj_id)
+
+                # Track consensus time
+                assigned_count = sum(1 for a in sim.agents if a.assigned_task_id is not None)
+                if assigned_count == num_drones and consensus_time is None:
+                    consensus_time = tdma_scheduler.current_time
+
+                # Log metrics manually
+                sim.metrics_logger.log_frame(sim.frame, sim.agents, sim.objectives)
+                sim.frame += 1
+        else:
+            # God Mode / Magical Telepathy Loop
+            for frame_idx in range(frames):
+                sim.step(0.1)
+                
+                # Track when each drone is first assigned a task
+                for agent in sim.agents:
+                    if agent.assigned_task_id is not None and agent.agent_id not in first_assignment_frame:
+                        first_assignment_frame[agent.agent_id] = frame_idx
+                        
+                # Check for objectives reached (within 3.0 distance of any drone)
+                for agent in sim.agents:
+                    for obj in sim.objectives:
+                        dist = math.hypot(agent.x - obj.x, agent.y - obj.y)
+                        if dist <= 3.0:
+                            completed_objectives.add(obj.obj_id)
+
+                # Track consensus time
+                assigned_count = sum(1 for a in sim.agents if a.assigned_task_id is not None)
+                if assigned_count == num_drones and consensus_time is None:
+                    consensus_time = frame_idx * 0.1
 
     def count_completed(sim_instance):
         return len(completed_objectives)
@@ -158,7 +223,6 @@ if st.button("Run CBBA Simulation", type="primary", use_container_width=True):
     def compute_assignment_time(sim_instance):
         if not first_assignment_frame:
             return 0.0
-        # Average frame index converted to simulation seconds (dt=0.1)
         avg_frames = sum(first_assignment_frame.values()) / len(first_assignment_frame)
         return avg_frames * 0.1
 
@@ -180,10 +244,17 @@ if st.button("Run CBBA Simulation", type="primary", use_container_width=True):
         assigned_drones = sum(1 for a in sim.agents if a.assigned_task_id is not None)
         st.metric("Drones Assigned", f"{assigned_drones} / {num_drones}")
         
+        if consensus_time is not None:
+            st.metric("Consensus Convergence Time", f"{consensus_time:.2f}s")
+        else:
+            st.metric("Consensus Convergence Time", "N/A (Did not converge)")
+        
         # State counts
         st.markdown("### Fleet Status")
         st.markdown(f"- 🔵 **Idle Drones:** {num_drones - assigned_drones}")
         st.markdown(f"- 🟡 **Assigned Drones:** {assigned_drones}")
+        st.markdown(f"- 📡 **Radio Protocol:** {'TDMA Slot' if use_tdma else 'Magical Telepathy'}")
 else:
     st.info("Click **Run CBBA Simulation** to execute decentralized task allocation.")
+
 
