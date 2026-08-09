@@ -27,10 +27,16 @@ with st.sidebar:
     st.header("Communication Settings")
     use_tdma = st.checkbox("🚧 Enable Realistic TDMA Radio (Slower Consensus)", value=False)
     slot_duration_ms = st.slider("TDMA Slot Duration (ms)", 10, 200, 50, disabled=not use_tdma)
+    packet_loss_rate = st.slider("📡 Packet Loss Rate (%)", 0, 100, 15, disabled=not use_tdma)
     
+    st.markdown("---")
+    st.header("Fault Tolerance / Attrition")
+    kill_drone_id = st.selectbox("🎯 Shoot Down Drone at Frame 50", options=["None"] + list(range(num_drones)))
+
     st.markdown("---")
     st.markdown("**CBBA Agent Defaults:**")
     st.markdown("- Speed: `1.5`\n- Max Force: `0.2`\n- Comm Range: `25.0`\n- Separation Weight: `1.5`\n- SAM Repulsion Weight: `4.5`")
+
 
 
 def build_cbba_config(num_drones: int, num_objectives: int, num_threats: int, threat_radius: float, seed_val: int) -> SwarmConfig:
@@ -142,13 +148,25 @@ if st.button("Run CBBA Simulation", type="primary", use_container_width=True):
     # Run simulation steps while tracking stats frame-by-frame
     first_assignment_frame = {}
     completed_objectives = set()
-    consensus_time = None
+    # Set a reference to the scheduler on the simulation so agents can access it (D-TDMA)
+    sim.tdma_scheduler = None
 
     with st.spinner("Running CBBA Auction Simulation..."):
         if use_tdma:
             tdma_scheduler = TDMAScheduler(num_drones=num_drones, slot_duration_ms=slot_duration_ms)
+            sim.tdma_scheduler = tdma_scheduler
+            # Determine maximum age for 3 consecutive missed turns
+            max_age_sec = max(2.0, 3.0 * (slot_duration_ms / 1000.0) * num_drones)
             
             for frame_idx in range(frames):
+                # Fault Tolerance Demonstration: Shoot down drone at frame 50
+                if kill_drone_id != "None" and frame_idx == 50:
+                    dead_id = int(kill_drone_id)
+                    if dead_id < len(sim.agents):
+                        sim.agents[dead_id].alive = False
+                        sim.agents[dead_id].state = "depleted"
+                        sim.agents[dead_id].assigned_task_id = None
+
                 # Step A: Determine who is the master of this millisecond
                 current_speaker_id = tdma_scheduler.get_current_speaker()
                 broadcast_packet = None
@@ -159,17 +177,20 @@ if st.button("Run CBBA Simulation", type="primary", use_container_width=True):
                     if speaker_agent.alive:
                         broadcast_packet = speaker_agent.prepare_broadcast(tdma_scheduler.current_time)
 
-                # Step C: The "Reception" Event (All other drones listen)
+                # Step C: The "Reception" Event (All other drones listen with simulated Packet Loss)
                 if broadcast_packet is not None:
                     for agent in sim.agents:
                         if agent.agent_id != current_speaker_id and agent.alive:
+                            # 1: Packet Loss & Dropout Filter
+                            if random.random() < packet_loss_rate:
+                                continue  # Packet dropped, receiver hears nothing
                             agent.receive_broadcast(current_speaker_id, broadcast_packet)
 
                 # Step D: Agent Decision Making (Using ONLY the mailbox)
                 for agent in sim.agents:
                     if not agent.alive:
                         continue
-                    perceived_swarm_state = agent.get_perceived_world(tdma_scheduler.current_time)
+                    perceived_swarm_state = agent.get_perceived_world(tdma_scheduler.current_time, max_age=max_age_sec)
                     agent.step(dt=0.1, perceived_swarm=perceived_swarm_state, simulation=sim)
 
                 # Step E: Advance the clock
@@ -189,7 +210,8 @@ if st.button("Run CBBA Simulation", type="primary", use_container_width=True):
 
                 # Track consensus time
                 assigned_count = sum(1 for a in sim.agents if a.assigned_task_id is not None)
-                if assigned_count == num_drones and consensus_time is None:
+                active_drones_count = sum(1 for a in sim.agents if a.alive)
+                if assigned_count == active_drones_count and consensus_time is None:
                     consensus_time = tdma_scheduler.current_time
 
                 # Log metrics manually
@@ -198,6 +220,14 @@ if st.button("Run CBBA Simulation", type="primary", use_container_width=True):
         else:
             # God Mode / Magical Telepathy Loop
             for frame_idx in range(frames):
+                # Fault Tolerance Demonstration: Shoot down drone at frame 50
+                if kill_drone_id != "None" and frame_idx == 50:
+                    dead_id = int(kill_drone_id)
+                    if dead_id < len(sim.agents):
+                        sim.agents[dead_id].alive = False
+                        sim.agents[dead_id].state = "depleted"
+                        sim.agents[dead_id].assigned_task_id = None
+
                 sim.step(0.1)
                 
                 # Track when each drone is first assigned a task
@@ -214,8 +244,10 @@ if st.button("Run CBBA Simulation", type="primary", use_container_width=True):
 
                 # Track consensus time
                 assigned_count = sum(1 for a in sim.agents if a.assigned_task_id is not None)
-                if assigned_count == num_drones and consensus_time is None:
+                active_drones_count = sum(1 for a in sim.agents if a.alive)
+                if assigned_count == active_drones_count and consensus_time is None:
                     consensus_time = frame_idx * 0.1
+
 
     def count_completed(sim_instance):
         return len(completed_objectives)

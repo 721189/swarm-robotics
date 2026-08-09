@@ -65,6 +65,22 @@ class CombatDroneAgent(BaseAgent):
                         self.assigned_task_id = None
 
     def run_local_auction(self, objectives):
+        # Ghost Drone fault tolerance: clear bids won by drones that are not in the perceived swarm (timed out)
+        perceived = getattr(self, "_current_perceived_swarm", None)
+        if perceived is not None:
+            # Drones in our perceived world plus ourselves are active
+            active_ids = set(perceived.keys())
+            active_ids.add(self.agent_id)
+            
+            # If a task is assigned to a drone that timed out, clear its allocation
+            for obj in objectives:
+                winner = self.local_winners.get(obj.obj_id, -1)
+                if winner != -1 and winner not in active_ids:
+                    self.local_bids[obj.obj_id] = 0.0
+                    self.local_winners[obj.obj_id] = -1
+                    if self.assigned_task_id == obj.obj_id:
+                        self.assigned_task_id = None
+
         # Init ledgers for any new objectives if not already there
         for obj in objectives:
             if obj.obj_id not in self.local_bids:
@@ -145,10 +161,22 @@ class CombatDroneAgent(BaseAgent):
         self._current_perceived_swarm = perceived_swarm
         
         if simulation:
+            # D-TDMA Request logic: Request double slot if near threats or targets
+            near_threat = any(distance(self.x, self.y, t.x, t.y) < t.radius + 5.0 for t in simulation.threats)
+            near_obj = any(distance(self.x, self.y, o.x, o.y) < 20.0 for o in simulation.objectives)
+            
+            scheduler = getattr(simulation, "tdma_scheduler", None)
+            if (near_threat or near_obj) and scheduler is not None:
+                scheduler.request_double_slot(self.agent_id)
+                self.double_slot_requested = True
+            else:
+                self.double_slot_requested = False
+
             self.run_local_auction(simulation.objectives)
             dx, dy, moving = self.decide(simulation)
             bounds = simulation.config.simulation.bounds
             self.update_state(dx, dy, moving, bounds, dt)
+
 
     def decide(self, simulation: Any) -> Tuple[float, float, bool]:
         # Force weights
