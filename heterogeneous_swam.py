@@ -1,8 +1,8 @@
 """Heterogeneous swarm: scouts explore and paint objectives; workers follow paint only.
 
 Run:
-    python "heterogeneous swam.py"
-    python "heterogeneous swam.py" --out heterogeneous_swarm.gif
+    python heterogeneous_swam.py
+    python heterogeneous_swam.py --out heterogeneous_swarm.gif
 
 Local interaction rules work across robot species via shared environmental
 markers (scout paint) rather than direct peer-to-peer messaging.
