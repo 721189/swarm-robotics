@@ -5,9 +5,9 @@
     "type": "individual",
     "role": "maintainer",
     "name": "Shivam Singh",
-    "email": "your-email@domain.com",
+    "email": "shivam.work.1010@email.com",
     "phone": "",
-    "description": "Independent researcher and developer building open-source swarm robotics simulation and control systems. I am the sole maintainer of the Swarm Robotics project, which has grown from 2,075 to 3,640 lines of production-grade code with 17 passing tests. Funding will support compute infrastructure for rigorous benchmarking (400+ configuration matrix, 30+ trials each), ROS2 integration, and travel to present at IEEE ICRA 2027 in Seoul, South Korea.",
+    "description": "Independent researcher and developer building open-source swarm robotics simulation and control systems. Sole maintainer of Swarm Robotics project (3,640 LOC, 17 tests). Funding supports compute infrastructure, ROS2 integration, and conference travel.",
     "webpageUrl": {
       "url": "https://github.com/721189/swarm-robotics",
       "wellKnown": ""
@@ -17,7 +17,7 @@
     {
       "guid": "swarm-robotics",
       "name": "Swarm Robotics Simulation",
-      "description": "A production-grade multi-agent simulation platform for autonomous drone swarms. Features include: TDMA/D-TDMA communication protocols, packet loss simulation, ghost drone fault tolerance (self-healing task reallocation), CBBA task allocation, Reynolds rules, Voronoi partitioning, A/B testing UI, 3D Plotly visualization, and Dockerized deployment. Currently at 3,640 LOC with 17/17 passing tests. Target: IEEE ICRA 2027, Seoul, South Korea.",
+      "description": "Production-grade multi-agent simulation platform for autonomous drone swarms. Features TDMA/D-TDMA communication, packet loss simulation, ghost drone fault tolerance, CBBA task allocation, Reynolds rules, Voronoi partitioning, A/B testing UI, 3D Plotly visualization, Dockerized deployment. 3,640 LOC, 17/17 tests passing. Target: IEEE ICRA 2027.",
       "webpageUrl": {
         "url": "https://github.com/721189/swarm-robotics",
         "wellKnown": ""
@@ -31,16 +31,16 @@
   "funding": {
     "plans": [
       {
-        "name": "Compute & Benchmarking Infrastructure",
-        "description": "Dedicated compute server to run the full benchmark suite across 432 configurations with 30+ trials each, generating statistically significant results for IEEE publication.",
+        "name": "Compute and Benchmarking Infrastructure",
+        "description": "Dedicated compute server for running the full benchmark suite across 432 configurations with 30+ trials each, generating statistically significant results for IEEE publication.",
         "amount": 10000,
         "currency": "USD",
         "frequency": "one-time",
         "channels": ["github"]
       },
       {
-        "name": "ROS2 Integration & Hardware Path",
-        "description": "Port the entire CBBA+TDMA logic to ROS2 with Gazebo simulation using Crazyflie/TurtleBot models, laying the foundation for physical drone testing.",
+        "name": "ROS2 Integration and Hardware Path",
+        "description": "Port CBBA+TDMA logic to ROS2 with Gazebo simulation using Crazyflie/TurtleBot models for hardware validation.",
         "amount": 8000,
         "currency": "USD",
         "frequency": "one-time",
@@ -48,14 +48,14 @@
       },
       {
         "name": "ICRA 2027 Conference Travel",
-        "description": "Travel, accommodation, and registration for ICRA 2027 in Seoul, South Korea (May 24-28, 2027) to present the swarm resilience research.",
+        "description": "Travel, accommodation, and registration for ICRA 2027 in Seoul, South Korea (May 24-28, 2027) to present swarm resilience research.",
         "amount": 5000,
         "currency": "USD",
         "frequency": "one-time",
         "channels": ["github"]
       },
       {
-        "name": "Maintainer Time & Sustained Development",
+        "name": "Maintainer Time and Sustained Development",
         "description": "Sustained funding to support continued development, maintenance, and community support for the Swarm Robotics project.",
         "amount": 15000,
         "currency": "USD",
