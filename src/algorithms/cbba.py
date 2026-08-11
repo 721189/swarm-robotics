@@ -38,6 +38,11 @@ class CombatDroneAgent(BaseAgent):
         self.local_winners = {}  # Maps Obj ID -> Winning Drone ID
         self.local_bids = {}     # Maps Obj ID -> Highest Known Bid
 
+        # TDMA Telemetry Mailbox
+        self.message_mailbox = {}  # Stores messages from other drones: {drone_id: {"data": {...}, "timestamp": float}}
+        self.my_telemetry = {"pos": (self.x, self.y), "task": None, "battery": self.battery}
+
+
     def calculate_local_bid(self, objective) -> float:
         dist = distance(self.x, self.y, objective.x, objective.y)
         return max(0.1, 100.0 - dist)
@@ -60,6 +65,22 @@ class CombatDroneAgent(BaseAgent):
                         self.assigned_task_id = None
 
     def run_local_auction(self, objectives):
+        # Ghost Drone fault tolerance: clear bids won by drones that are not in the perceived swarm (timed out)
+        perceived = getattr(self, "_current_perceived_swarm", None)
+        if perceived is not None:
+            # Drones in our perceived world plus ourselves are active
+            active_ids = set(perceived.keys())
+            active_ids.add(self.agent_id)
+            
+            # If a task is assigned to a drone that timed out, clear its allocation
+            for obj in objectives:
+                winner = self.local_winners.get(obj.obj_id, -1)
+                if winner != -1 and winner not in active_ids:
+                    self.local_bids[obj.obj_id] = 0.0
+                    self.local_winners[obj.obj_id] = -1
+                    if self.assigned_task_id == obj.obj_id:
+                        self.assigned_task_id = None
+
         # Init ledgers for any new objectives if not already there
         for obj in objectives:
             if obj.obj_id not in self.local_bids:
@@ -88,6 +109,74 @@ class CombatDroneAgent(BaseAgent):
             target_obj = next(o for o in objectives if o.obj_id == best_target_id)
             self.local_bids[best_target_id] = self.calculate_local_bid(target_obj)
             self.local_winners[best_target_id] = self.agent_id
+
+    def prepare_broadcast(self, current_time: float) -> dict:
+        """This is called when it's this drone's turn to speak."""
+        self.my_telemetry = {
+            "pos": (self.x, self.y),
+            "task_id": self.assigned_task_id,
+            "battery": self.battery,
+            "timestamp": current_time,
+            "local_winners": self.local_winners.copy(),
+            "local_bids": self.local_bids.copy()
+        }
+        return self.my_telemetry
+
+    def receive_broadcast(self, sender_id: int, data: dict):
+        """Store incoming telemetry in the mailbox with the timestamp."""
+        if sender_id == self.agent_id:
+            return # Don't listen to yourself
+        self.message_mailbox[sender_id] = data
+
+        # Gossip Consensus Sync
+        if "local_bids" in data and "local_winners" in data:
+            for obj_id, bid in data["local_bids"].items():
+                obj_id = int(obj_id)
+                if obj_id not in self.local_bids:
+                    self.local_bids[obj_id] = 0.0
+                    self.local_winners[obj_id] = -1
+                if bid > self.local_bids[obj_id]:
+                    self.local_bids[obj_id] = bid
+                    # Handle keys as strings or ints from serialized dictionary
+                    winner_val = data["local_winners"].get(str(obj_id), data["local_winners"].get(obj_id, -1))
+                    self.local_winners[obj_id] = winner_val
+                    
+                    if self.assigned_task_id == obj_id and self.local_winners[obj_id] != self.agent_id:
+                        self.assigned_task_id = None
+
+    def get_perceived_world(self, current_time: float, max_age: float = 2.0) -> dict:
+        """
+        Filters the mailbox. If a message is older than 'max_age' seconds,
+        we consider the drone 'lost' and ignore its data (simulates packet timeout).
+        """
+        valid_readings = {}
+        for drone_id, data in self.message_mailbox.items():
+            if current_time - data["timestamp"] <= max_age:
+                valid_readings[drone_id] = data
+        return valid_readings
+
+    def step(self, dt: float, perceived_swarm: dict = None, simulation: Any = None):
+        if perceived_swarm is None:
+            perceived_swarm = {}
+        self._current_perceived_swarm = perceived_swarm
+        
+        if simulation:
+            # D-TDMA Request logic: Request double slot if near threats or targets
+            near_threat = any(distance(self.x, self.y, t.x, t.y) < t.radius + 5.0 for t in simulation.threats)
+            near_obj = any(distance(self.x, self.y, o.x, o.y) < 20.0 for o in simulation.objectives)
+            
+            scheduler = getattr(simulation, "tdma_scheduler", None)
+            if (near_threat or near_obj) and scheduler is not None:
+                scheduler.request_double_slot(self.agent_id)
+                self.double_slot_requested = True
+            else:
+                self.double_slot_requested = False
+
+            self.run_local_auction(simulation.objectives)
+            dx, dy, moving = self.decide(simulation)
+            bounds = simulation.config.simulation.bounds
+            self.update_state(dx, dy, moving, bounds, dt)
+
 
     def decide(self, simulation: Any) -> Tuple[float, float, bool]:
         # Force weights
@@ -122,14 +211,28 @@ class CombatDroneAgent(BaseAgent):
 
         # 3. Reynolds separation to avoid drone collisions
         sep_x, sep_y = 0.0, 0.0
-        for other in simulation.agents:
-            if other.agent_id != self.agent_id and other.alive:
-                d = distance(self.x, self.y, other.x, other.y)
+        
+        # If we have a perceived swarm from TDMA, use it to avoid collisions.
+        # Otherwise, fall back to global simulation.agents coordinates.
+        perceived = getattr(self, "_current_perceived_swarm", None)
+        if perceived is not None and len(perceived) > 0:
+            for other_id, telemetry in perceived.items():
+                ox, oy = telemetry["pos"]
+                d = distance(self.x, self.y, ox, oy)
                 if d < 4.0:
                     d = max(d, 0.5)
-                    dx, dy = normalize(self.x - other.x, self.y - other.y)
+                    dx, dy = normalize(self.x - ox, self.y - oy)
                     sep_x += dx / d
                     sep_y += dy / d
+        else:
+            for other in simulation.agents:
+                if other.agent_id != self.agent_id and other.alive:
+                    d = distance(self.x, self.y, other.x, other.y)
+                    if d < 4.0:
+                        d = max(d, 0.5)
+                        dx, dy = normalize(self.x - other.x, self.y - other.y)
+                        sep_x += dx / d
+                        sep_y += dy / d
         
         fx += sep_x * sep_w
         fy += sep_y * sep_w
@@ -148,3 +251,4 @@ class CombatDroneAgent(BaseAgent):
 
         # Drone is always active/moving
         return self.vx, self.vy, True
+
