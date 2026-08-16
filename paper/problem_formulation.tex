@@ -1,0 +1,29 @@
+\section{Problem Formulation}
+
+\subsection{Swarm Model}
+Let $\mathcal{D} = \{d_1, d_2, \ldots, d_n\}$ be a set of $n$ autonomous drones operating in a bounded 2D environment $\mathcal{W} \subset \mathbb{R}^2$.
+
+Each drone $d_i$ is characterized by:
+\begin{itemize}
+    \item Position $\mathbf{p}_i(t) \in \mathcal{W}$
+    \item Velocity $\mathbf{v}_i(t) \in \mathbb{R}^2$
+    \item Battery level $b_i(t) \in [0, 1]$
+    \item Task assignment $a_i(t) \in \mathcal{O} \cup \{\emptyset\}$
+\end{itemize}
+
+\subsection{Objective Model}
+Let $\mathcal{O} = \{o_1, o_2, \ldots, o_m\}$ be a set of $m$ objectives.
+Each objective $o_j$ has:
+\begin{itemize}
+    \item Position $\mathbf{q}_j \in \mathcal{W}$
+    \item Value $v_j \in \mathbb{R}^+$
+\end{itemize}
+
+\subsection{Communication Model}
+Communication is governed by a TDMA scheduler:
+\begin{itemize}
+    \item Time is divided into slots of duration $\tau$
+    \item Each drone $d_i$ is assigned a unique slot $s_i \in \{0, 1, \ldots, n-1\}$
+    \item Transmission occurs only during assigned slot
+    \item Packet loss probability $p \in [0, 1]$
+\end{itemize}

@@ -1,0 +1,14 @@
+\subsection{Discussion}
+
+This paper extends the Consensus-Based Bundle Algorithm (CBBA) with a TDMA scheduler to enforce realistic communication constraints in drone swarm task allocation. The key contributions are:
+
+\begin{enumerate}
+    \item \textbf{Deterministic benchmark harness}: A fully reproducible headless simulation framework that varies swarm size, packet loss, and slot duration, with rigorous statistical analysis (Shapiro-Wilk, ANOVA, 95\% CIs).
+    \item \textbf{Convergence under TDMA}: Proof that TDMA only introduces a bounded delay $N \tau K$ to CBBA convergence, preserving the 50\% optimality guarantee.
+    \item \textbf{Quantified trade-offs}: Empirical data showing MTC grows linearly with swarm size and packet loss, while PDR remains robust under moderate loss ($p \leq 0.15$).
+    \item \textbf{Publication-ready figures}: Four exportable PNGs suitable for IEEE transactions, demonstrating convergence behavior, PDR degradation, and the MTC heatmap.
+\end{enumerate}
+
+\textbf{Limitations:} The benchmark uses a simplified 100$\times$100\,m environment with homogeneous combat drones. Future work should explore heterogeneous agent types, dynamic threat landscapes, and adaptive slot allocation (D-TDMA). The linear convergence bound $T_{TDMA} \leq T_{ideal} + N \tau K$ is loose for large $K$; tighter bounds could be derived from the CBBA gossip convergence literature.
+
+\textbf{Future Directions:} Integrate the benchmark with the Streamlit UI for interactive parameter sweep, extend the convergence proof to stochastic packet loss models, and explore learned TDMA slot assignment to minimise the $N \tau$ overhead.

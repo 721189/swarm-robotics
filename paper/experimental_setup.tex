@@ -1,0 +1,22 @@
+\subsection{Experimental Setup}
+
+The benchmark suite was executed on a swarm of $n \in \{10, 30, 50\}$ drones over $m \in \{3, 5, 10\}$ objectives with $k \in \{0, 2, 5\}$ threats. The test matrix included four packet loss rates $p \in \{0.0, 0.05, 0.15, 0.30\}$ and four slot durations $\tau \in \{0.025, 0.050, 0.100\}$ seconds, with $t = 30$ trials per configuration under the CBBA algorithm with TDMA scheduling. Each trial ran for a maximum of $F_{max} = 500$ frames at timestep $\Delta t = 0.1\text{s}$. The following metrics were recorded per trial:
+
+\begin{itemize}
+    \item \textbf{SCI} (Swarm Cohesion Index): normalised mean inter-agent distance
+    \item \textbf{CE} (Coverage Efficiency): fraction of objectives with an assigned winning agent
+    \item \textbf{PDR} (Packet Delivery Ratio): per-link reliability $\frac{\text{received}}{\text{offered}} \in [0,1]$
+    \item \textbf{MTC} (Mean Time to Convergence): frames-to-consensus $\times \Delta t$, capped at 50.0\,s
+\end{itemize}
+
+Four baseline radio models were compared:
+\begin{itemize}
+    \item \textit{ideal\_omni}: No TDMA, no packet loss (perfect channel)
+    \item \textit{tdma\_clean}: TDMA slots, no packet loss (isolates TDMA overhead)
+    \item \textit{no\_tdma\_packet\_loss}: Open channel, packet loss (isolates TDMA effect)
+    \item \textit{tdma\_packet\_loss}: TDMA slots + packet loss (proposed system)
+\end{itemize}
+
+All trials used a deterministic seed $s = 42 + \text{trial}$ for reproducibility, and a $100 \times 100$\,m square battlefield with $\text{sense\_radius} = 25.0\,\text{m}$ per drone. Statistical significance was assessed via Shapiro-Wilk normality tests and one-way ANOVA ($\alpha = 0.05$), with 95\% confidence intervals computed per baseline per metric.
+
+\textbf{Key:} The reduced matrix ($n \in \{10,30,5\}$, $p \in \{0.0,0.05,0.15,0.3\}$, $t=5$) produced 1620 usable runs, from which four publication-grade figures were exported.

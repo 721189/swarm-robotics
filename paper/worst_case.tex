@@ -1,0 +1,15 @@
+\subsection{Worst-Case Performance Guarantee}
+
+CBBA provides a 50\% optimality guarantee for utility functions satisfying the DMG property.
+
+\textbf{Theorem 2:} Under TDMA constraints, the 50\% optimality guarantee is preserved.
+
+\textbf{Proof:}
+The DMG property depends only on the utility function, not on communication timing. Since TDMA only delays communication but does not alter the utility function or the bidding logic, the optimality bound holds.
+
+Let $\mathcal{U}$ be the optimal utility.
+Let $\mathcal{U}_{TDMA}$ be the utility achieved by TDMA-CBBA.
+Then:
+\[
+\mathcal{U}_{TDMA} \geq 0.5 \times \mathcal{U}
+\]

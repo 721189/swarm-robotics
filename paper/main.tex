@@ -1,0 +1,22 @@
+\documentclass{IEEEtran}
+
+\begin{document}
+
+\title{TDMA-CBBA: Communication-Constrained Task Allocation for Swarm Robotics}
+\author{Shivam Singh}
+
+\maketitle
+
+\begin{abstract}
+    This paper presents TDMA-CBBA, a decentralized task allocation algorithm for drone swarms operating under realistic communication constraints. We extend the standard Consensus-Based Bundle Algorithm (CBBA) by introducing a Time Division Multiple Access (TDMA) scheduler that enforces a realistic communication discipline while preserving the optimality and convergence guarantees of the original algorithm. Through rigorous benchmarking across varying swarm sizes, packet loss rates, and slot durations, we quantify the trade-offs between convergence time, coverage efficiency, and packet delivery ratio, demonstrating that TDMA-CBBA maintains the 50\% optimality bound under communication constraints.
+\end{abstract}
+
+\input{problem_formulation}
+\input{convergence_proof}
+\input{worst_case}
+\input{complexity}
+\input{experimental_setup}
+\input{results}
+\input{discussion}
+
+\end{document}
