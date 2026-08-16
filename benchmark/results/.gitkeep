@@ -1,0 +1,3 @@
+This directory holds collected benchmark results and generated figures.
+Keep the folder in git (via this .gitkeep) so analyzers/visualizer.py have a
+stable output location.

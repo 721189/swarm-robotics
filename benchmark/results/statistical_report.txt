@@ -1,0 +1,28 @@
+========================================================================
+STATISTICAL ANALYSIS REPORT - Swarm Robotics Benchmark
+Source files: benchmark_reduced.csv
+Rows: 1620 | Baselines: ['tdma_packet_loss']
+========================================================================
+
+1. Normality Tests (Shapiro-Wilk):
+   metric      n  statistic   p-value verdict
+   mtc      1620     0.7050    0.0000  NOT normal
+   sci      1620     0.9838    0.0000  NOT normal
+   ce       1620     0.7285    0.0000  NOT normal
+   pdr      1620     0.8480    0.0000  NOT normal
+
+2. One-way ANOVA (alpha = 0.05):
+   mtc by baseline: F=nan, p=nan [n.s.]
+   sci by baseline: F=nan, p=nan [n.s.]
+   ce by baseline: F=nan, p=nan [n.s.]
+   pdr by baseline: F=nan, p=nan [n.s.]
+   MTC by use_tdma: F=nan, p=nan [n.s.]
+
+3. 95% Confidence Intervals by baseline:
+   baseline                 metric    n       mean      sem     CI low    CI high
+   tdma_packet_loss         mtc    1620    31.2615     0.5313    30.2194    32.3036
+   tdma_packet_loss         sci    1620     0.4768     0.0023     0.4723     0.4812
+   tdma_packet_loss         ce     1620     0.7594     0.0083     0.7431     0.7757
+   tdma_packet_loss         pdr    1620     0.9372     0.0014     0.9343     0.9400
+
+4. Convergence deltas vs 'ideal_omni' baseline:
