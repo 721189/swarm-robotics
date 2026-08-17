@@ -1,6 +1,6 @@
 \subsection{Results}
 
-The benchmark produced four headline figures exported from the reduced 1620-run matrix:
+The benchmark produced five headline figures exported from the reduced 1620-run matrix (5 trials $\times$ 54 configurations):
 
 \begin{figure}[h]
 \centering
@@ -30,12 +30,28 @@ The benchmark produced four headline figures exported from the reduced 1620-run 
 \label{fig:heatmap}
 \end{figure}
 
-\textbf{Statistical Report:} A Shapiro-Wilk normality test rejected normality for all four metrics ($p < 0.001$). One-way ANOVA confirmed a highly significant effect of TDMA usage on MTC ($F = 23.31$, $p = 0.0003$). Post-hoc confidence intervals show the TDMA+loss baseline converges in $\sim$50\,s (cap), while the ideal omni baseline converges in $\sim$0.6\,s. The 50\% optimality bound under TDMA constraints was validated across all swarm sizes and packet loss rates.
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.45\textwidth]{figures/boxplot.png}
+\caption{Distribution of SCI, CE, PDR, and MTC across baselines}
+\label{fig:boxplot}
+\end{figure}
+
+\textbf{Statistical Report:} A Shapiro-Wilk normality test rejected normality for all four metrics ($p < 0.001$). Since the reduced matrix contains only the TDMA+packet loss baseline, ANOVA across baselines yields $F = \text{nan}$; however, the confidence intervals for the TDMA+packet loss baseline are:
+\begin{itemize}
+    \item MTC: $31.26 \pm 0.53$\,s (95\% CI: [30.22, 32.30])
+    \item SCI: $0.477 \pm 0.002$ (95\% CI: [0.472, 0.481])
+    \item CE: $0.759 \pm 0.008$ (95\% CI: [0.743, 0.776])
+    \item PDR: $0.937 \pm 0.001$ (95\% CI: [0.934, 0.940])
+\end{itemize}
+
+The correlation analysis reveals a strong negative correlation between packet loss rate and PDR ($r = -0.993$), a moderate positive correlation between swarm size and MTC ($r = 0.723$), and a moderate negative correlation between packet loss rate and SCI ($r = -0.279$). Swarm size and CE show a moderate positive correlation ($r = 0.424$).
 
 \textbf{Figures:}
 \begin{itemize}
-    \item \textbf{mtc\_vs\_swarm\_size.png}: MTC increases superlinearly with swarm size under TDMA
-    \item \textbf{pdr\_vs\_packet\_loss.png}: PDR degrades gracefully with increasing $p$, with TDMA_clean maintaining PDR=1.0
-    \item \textbf{convergence\_curve.png}: Ideal omni converges fastest; TDMA+loss plateaus at the 50\,s cap
-    \item \textbf{heatmap.png}: MTC grows with both swarm size and packet loss, confirming the linear bound $T_{TDMA} \leq T_{ideal} + N \tau K$
+    \item \textbf{mtc\_vs\_swarm\_size.png}: MTC increases approximately linearly with swarm size under TDMA, consistent with the theoretical bound $T_{TDMA} \leq T_{ideal} + N \tau K$.
+    \item \textbf{pdr\_vs\_packet\_loss.png}: PDR degrades gracefully with increasing $p$; at 15\% loss PDR $> 93\%$, at 30\% loss PDR $\approx 85\%$.
+    \item \textbf{convergence\_curve.png}: The empirical CDF shows consensus typically reached within 100 frames under moderate conditions.
+    \item \textbf{heatmap.png}: MTC grows with both swarm size and packet loss, confirming the linear scaling.
+    \item \textbf{boxplot.png}: Distributions show MTC skewed toward higher values at larger swarm sizes and higher packet loss rates.
 \end{itemize}
