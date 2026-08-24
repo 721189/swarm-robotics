@@ -1,22 +1,69 @@
-\subsection{Experimental Setup}
+\section{Experimental Setup}\label{sec:setup}
 
-The benchmark suite was executed on a swarm of $n \in \{10, 30, 50\}$ drones over $m \in \{3, 5, 10\}$ objectives with $k \in \{0, 2, 5\}$ threats. The test matrix included four packet loss rates $p \in \{0.0, 0.05, 0.15, 0.30\}$ and four slot durations $\tau \in \{0.025, 0.050, 0.100\}$ seconds, with $t = 30$ trials per configuration under the CBBA algorithm with TDMA scheduling. Each trial ran for a maximum of $F_{max} = 500$ frames at timestep $\Delta t = 0.1\text{s}$. The following metrics were recorded per trial:
+This section specifies the simulation platform, test matrix, metric definitions, baseline radio models, and statistical methodology.
+All experiments are executed by a deterministic, headless harness; no rendering or human input is involved.
 
-\begin{itemize}
-    \item \textbf{SCI} (Swarm Cohesion Index): normalised mean inter-agent distance
-    \item \textbf{CE} (Coverage Efficiency): fraction of objectives with an assigned winning agent
-    \item \textbf{PDR} (Packet Delivery Ratio): per-link reliability $\frac{\text{received}}{\text{offered}} \in [0,1]$
-    \item \textbf{MTC} (Mean Time to Convergence): frames-to-consensus $\times \Delta t$, capped at 50.0\,s
-\end{itemize}
+\subsection{Simulation Platform}
+The environment is a $100 \times 100$\,m square workspace $\mathcal{W}$ with reflecting boundaries.
+Drones are homogeneous combat agents ($v_{\max} = 1.5$\,m/s, steering limit $0.2$, communication--sensing radius $25$\,m) integrated at $\Delta t = 0.1$\,s for a mission horizon of $F_{\max} = 500$ frames (50\,s).
+Objectives are placed uniformly at random in the central region $[15, 85]^2$; SAM threats (radius $15$\,m, strength $60$) are placed uniformly in $[20, 80]^2$.
+Belief validity is fixed at $T_{\mathrm{val}} = 2.0$\,s throughout, so by Theorem~\ref{thm:impossibility} the predicted staleness threshold sits at swarm sizes where $N\tau > 2$\,s---a regime our matrix deliberately spans.
 
-Four baseline radio models were compared:
-\begin{itemize}
-    \item \textit{ideal\_omni}: No TDMA, no packet loss (perfect channel)
-    \item \textit{tdma\_clean}: TDMA slots, no packet loss (isolates TDMA overhead)
-    \item \textit{no\_tdma\_packet\_loss}: Open channel, packet loss (isolates TDMA effect)
-    \item \textit{tdma\_packet\_loss}: TDMA slots + packet loss (proposed system)
-\end{itemize}
+\subsection{Test Matrix}\label{sec:test-matrix}
+The released benchmark varies five factors:
+swarm size $n \in \{10, 30, 50\}$,
+packet loss $p_{\mathrm{tx}} \in \{0.0,\ 0.05,\ 0.15,\ 0.30\}$ (with $p_{\mathrm{rx}} = p_{\mathrm{tx}}/2$),
+objectives $M \in \{3, 5, 10\}$,
+threats $k \in \{0, 2, 5\}$, and
+slot duration $\tau \in \{25, 50, 100\}$\,ms.
+Each of the $3 \times 4 \times 3 \times 3 \times 3 = 324$ configurations is repeated over $t$ independent trials with deterministic seeding (base seed $42$, trial seed $42 + t'$), yielding fully reproducible runs.
+The dataset analyzed in Section~\ref{sec:results} uses $t = 5$ trials per configuration ($1{,}620$ runs); the identical harness supports arbitrary trial counts, including a $30$-trial paper-grade grid ($9{,}720$ runs), via a single command-line flag.
 
-All trials used a deterministic seed $s = 42 + \text{trial}$ for reproducibility, and a $100 \times 100$\,m square battlefield with $\text{sense\_radius} = 25.0\,\text{m}$ per drone. Statistical significance was assessed via Shapiro-Wilk normality tests and one-way ANOVA ($\alpha = 0.05$), with 95\% confidence intervals computed per baseline per metric.
+Because $T_{\mathrm{val}} = 2$\,s and $\tau \leq 100$\,ms, configurations with $n \geq 21$ at $\tau = 100$\,ms ($N\tau > 2$\,s) fall beyond the staleness threshold of Theorem~\ref{thm:impossibility}; this lets us probe both sides of the phase transition within one matrix.
 
-\textbf{Key:} The reduced matrix ($n \in \{10,30,5\}$, $p \in \{0.0,0.05,0.15,0.3\}$, $t=5$) produced 1620 usable runs, from which four publication-grade figures were exported.
+\subsection{Metrics}\label{sec:metrics}
+Four metrics are recorded per trial. Let $\mathcal{D}_{\mathrm{alive}}(t)$ denote alive agents at trial end and $L = 100$\,m.
+
+\emph{(1) Swarm Cohesion Index (SCI)}---normalized mean pairwise separation among alive agents:
+\begin{equation}
+    \mathrm{SCI} = \frac{2}{|\mathcal{D}_{\mathrm{alive}}|(|\mathcal{D}_{\mathrm{alive}}| - 1)}
+    \sum_{i < j} \frac{\lVert \mathbf{p}_i - \mathbf{p}_j \rVert}{L},
+    \label{eq:sci}
+\end{equation}
+with SCI $\to 0$ indicating tight clustering and larger values dispersion; single-agent trials report SCI $= 1$.
+
+\emph{(2) Coverage Efficiency (CE)}---fraction of objectives claimed by an assigned, alive agent:
+\begin{equation}
+    \mathrm{CE} = \min\!\Big(1,\ \frac{\big|\{\, d_i \in \mathcal{D}_{\mathrm{alive}} : a_i \neq \varnothing \,\}\big|}{M}\Big).
+    \label{eq:ce}
+\end{equation}
+
+\emph{(3) Packet Delivery Ratio (PDR)}---per-link reliability over the whole trial:
+\begin{equation}
+    \mathrm{PDR} = \frac{\#\text{deliveries}}{\#\text{offered links}} \in [0, 1],
+    \label{eq:pdr}
+\end{equation}
+where every (transmit event $\times$ intended receiver) pair counts as one offered link, making PDR insensitive to fan-out multiplicity.
+
+\emph{(4) Mean Time to Consensus (MTC)}---wall-clock time from trial start to global ledger agreement (Def.~\ref{def:eventual}), censored at the horizon:
+\begin{equation}
+    \mathrm{MTC} = \min(t_{\mathrm{cons}} \cdot \Delta t,\ F_{\max}\Delta t).
+    \label{eq:mtc}
+\end{equation}
+
+\subsection{Baseline Radio Models}\label{sec:baselines}
+Four channel models isolate each design decision:
+\begin{enumerate}
+    \item \textbf{Ideal CBBA}: open channel, zero loss ($\tau \to 0$, $p = 0$)---canonical assumptions~\cite{choi2009}.
+    \item \textbf{TDMA-only}: slotted access, zero loss---isolates scheduling delay.
+    \item \textbf{Loss-only}: open channel, stochastic loss---isolates packet loss.
+    \item \textbf{TDMA-CBBA} (proposed): slotted access with loss---the full model.
+\end{enumerate}
+Comparisons against all four baselines follow the protocol of Sec.~\ref{sec:test-matrix}; headline statistics in Sec.~\ref{sec:results} are reported on the released TDMA-CBBA corpus.
+
+\subsection{Statistical Methodology}
+All metrics reject normality (Shapiro--Wilk, Sec.~\ref{sec:results}); we therefore report medians and means with bias-corrected bootstrap 95\% confidence intervals (10{,}000 resamples) rather than parametric ANOVA, and use Kruskal--Wallis $H$ tests with Dunn--Bonferroni post-hoc comparisons for between-baseline contrasts.
+Pearson correlations between experimental factors and outcomes are reported for effect direction and magnitude.
+Censoring in MTC is handled by reporting both capped means and convergence-rate (fraction converged within horizon), so the cap cannot inflate apparent performance.
+Significance level $\alpha = 0.05$ throughout.
+% placeholder

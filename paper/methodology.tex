@@ -1,0 +1,91 @@
+\section{Methodology: TDMA-CBBA}\label{sec:methodology}
+
+TDMA-CBBA interleaves CBBA's two-phase consensus-auction loop with a slotted radio discipline and belief management.
+Algorithm~\ref{alg:tmdacbba} summarizes one simulation frame; the components relative to canonical CBBA---slotted medium access, two-stage packet loss, and belief expiry---are detailed in Sections~\ref{sec:method-slotted}--\ref{sec:method-belief}, followed by the D-TDMA extension in Section~\ref{sec:dtdma}.
+
+\begin{algorithm}[t]
+\caption{TDMA-CBBA frame execution (one tick, $\Delta t$)}
+\label{alg:tmdacbba}
+\begin{algorithmic}[1]
+\State $t \gets t + \Delta t$
+\Statex \Comment{// Phase 1: Radio arbitration}
+\If{slot discipline active}
+    \State $s \gets \mathrm{TDMAScheduler}.\mathrm{currentSpeaker}(t)$
+    \If{$d_s$ alive \textbf{and} $\mathrm{rand}() > p_{\mathrm{tx}}$}
+        \State enqueue $(s,\ d_s.\mathrm{prepareBroadcast}(t))$
+    \EndIf
+\Else
+    \ForAll{alive $d_i$ with $\mathrm{rand}() > p_{\mathrm{tx}}$}
+        \State enqueue $(i,\ d_i.\mathrm{prepareBroadcast}(t))$
+    \EndFor
+\EndIf
+\Statex \Comment{// Phase 2: Reception with per-link loss}
+\ForAll{enqueued $(i, \mathbf{m}_i)$ and alive receivers $d_j$, $j \neq i$}
+    \If{$\mathrm{rand}() > p_{\mathrm{rx}}$}
+        \State $d_j.\mathrm{receive}(i, \mathbf{m}_i)$;\quad update PDR counters
+    \EndIf
+\EndFor
+\Statex \Comment{// Phase 3: Belief filtering and agent step}
+\ForAll{alive $d_i$}
+    \State $\mathcal{P}_i \gets \{\, j : t - t^{\mathrm{msg}}_{ij} \leq T_{\mathrm{val}} \,\}$ \Comment{perceived swarm}
+    \State $d_i.\mathrm{auctionAndMove}(\mathcal{P}_i)$
+\EndFor
+\State advance scheduler clock by $\Delta t$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Phase I: Consensus Auction over Ledgers}\label{sec:method-auction}
+Each drone executes the CBBA phases locally, restricted to its perceived swarm $\mathcal{P}_i$:
+
+\emph{(a) Ghost-drone pruning.}
+Before bidding, drone $i$ removes from its ledger every objective whose believed winner $w \notin \mathcal{P}_i \cup \{i\}$: it resets $\mathcal{B}_i(o_j) \leftarrow 0$ and $\mathcal{W}_i(o_j) \leftarrow \bot$, releasing the allocation.
+This mechanism provides fault tolerance against departed agents, but as Section~\ref{sec:phase-transition} shows, it is also the mechanism through which belief expiry can destabilize consensus.
+
+\emph{(b) Local greedy bid.}
+Drone $i$ evaluates each objective $o_j$ whose score satisfies $c_{ij} > \mathcal{B}_i(o_j)$ and claims the objective with maximal net gain $c_{ij} - \mathcal{B}_i(o_j)$, updating $a_i$, $\mathcal{B}_i(o_j) \leftarrow c_{ij}$, and $\mathcal{W}_i(o_j) \leftarrow i$; any previously held task is released when switching.
+
+\emph{(c) Ledger merging on reception.}
+Upon receiving a broadcast from peer $k$, drone $i$ performs an element-wise monotone merge: if the incoming bid exceeds its own for some $o_j$, it adopts both that bid and the sender's winner entry.
+If the adopted winner displaces $i$'s own assignment ($a_i = o_j$ but $\mathcal{W}_i(o_j) \neq i$), the outbid drone immediately releases $a_i \leftarrow \varnothing$.
+
+Because merges are monotone in bid value and winner entries travel with bids, this update rule is exactly the max-consensus of CBBA~\cite{choi2009}; Lemma~\ref{lem:monotone} formalizes the property driving our convergence proofs.
+\subsection{Phase II: Motion Control}
+Between auctions, drones execute a potential-field controller: attraction toward the assigned objective, repulsion from SAM threat zones via Eq.~\eqref{eq:threat-potential}, and Reynolds-style separation from neighbors within $4$\,m---where neighbors are drawn from the perceived swarm $\mathcal{P}_i$ under TDMA (strictly local information), or from ground truth under the open-channel baselines.
+This asymmetry is deliberate: it makes motion itself sensitive to communication quality, so that SCI responds to both physical flocking and informational coupling.
+
+\subsection{Slotted Medium Access}\label{sec:method-slotted}
+Under TDMA, exactly one agent broadcasts per scheduling opportunity, eliminating intra-frame collisions by construction.
+The scheduler advances round-robin through slots, so each agent transmits once per frame of duration $N\tau$; an agent's maximum \emph{inter-transmission gap} equals $N\tau$.
+This gap is precisely the quantity that couples to the belief horizon $T_{\mathrm{val}}$ in Section~\ref{sec:theory}: whenever the gap exceeds $T_{\mathrm{val}}$, the freshest belief about that peer expires before it can be renewed.
+In the open-channel baselines every alive agent broadcasts every frame, gaps collapse to one tick, and staleness becomes negligible.
+
+\subsection{Two-Stage Packet Loss Model}\label{sec:method-loss}
+We model channel impairment at two physically distinct points:
+(i) \emph{transmit-leg loss} $p_{\mathrm{tx}}$, representing collisions with external traffic, emitter-side fades, or aborted transmissions; and
+(ii) \emph{receive-leg loss} $p_{\mathrm{rx}}$, representing per-receiver decode failures due to distance-dependent SNR.
+In our benchmark $p_{\mathrm{rx}} = p_{\mathrm{tx}}/2$ (the receiver leg benefits from coding gain), giving link success probability $(1-p_{\mathrm{tx}})(1-p_{\mathrm{tx}}/2)$.
+Both stages are independent across links and frames, and every delivery attempt is counted, enabling exact offline computation of PDR.
+
+\subsection{Belief Expiry (Validity Horizon)}\label{sec:method-belief}
+Each mailbox entry carries its receive timestamp; entries older than $T_{\mathrm{val}}$ are purged before the auction phase.
+Belief expiry serves two purposes: it bounds mailbox memory, and it implements graceful degradation under agent attrition (departed agents stop transmitting and are forgotten within $T_{\mathrm{val}}$).
+Its interaction with TDMA scheduling is the central object of Section~\ref{sec:theory}: expiry converts bounded delay into bounded \emph{belief age}, and consensus survives only while worst-case belief age stays below the horizon.
+\subsection{Dynamic TDMA (D-TDMA) Extension}\label{sec:dtdma}
+Fixed slot lengths waste capacity on quiet agents and starve safety-critical ones.
+We therefore extend the scheduler with demand-driven slot doubling:
+
+\begin{enumerate}
+    \item Each drone continuously evaluates the proximity predicate
+    \begin{equation}
+        \phi_i = \Big( \min_l d(\mathbf{p}_i, \mathbf{x}_l) < r_l + 5\,\mathrm{m} \Big)
+        \ \lor\
+        \Big( \min_j d(\mathbf{p}_i, \mathbf{q}_j) < 20\,\mathrm{m} \Big),
+        \label{eq:dtdma-predicate}
+    \end{equation}
+    i.e., the drone is near a threat or approaching an objective.
+    \item If $\phi_i$ holds, the drone raises a double-slot request flag addressed to the scheduler.
+    \item When the drone's next scheduled slot begins, the scheduler grants a doubled slot of length $2\tau$, then clears the flag.
+    \item Grants are non-preemptive and preserve round-robin order: at most one doubling occurs per visit, slot order is never permuted, so the frame remains collision-free and the analysis of Section~\ref{sec:theory} carries over with effective cycle time bounded by $2N\tau$.
+\end{enumerate}
+
+D-TDMA thus adds an adaptive, safety-aware layer on top of deterministic medium access: contested agents obtain up to twice the telemetry bandwidth exactly when their state estimates matter most (threat evasion, terminal approach), while Theorems~\ref{thm:convergence} and~\ref{thm:worstcase} remain valid under the relaxed condition $2N\tau \leq T_{\mathrm{val}}$.

@@ -1,0 +1,52 @@
+\section{Introduction}\label{sec:intro}
+
+Autonomous drone swarms promise transformative capabilities in search and rescue, environmental monitoring, infrastructure inspection, and defense~\cite{chung2018survey,bravo2023swarm}.
+In all of these missions, a central computational problem recurs: \emph{which robot should do which task?}
+Centralized assignment is brittle---it introduces a single point of failure, a communication bottleneck at the leader, and a scalability ceiling that grows with fleet size~\cite{gerkey2004formal,korsah2015comprehensive}.
+The field's dominant answer is the \textbf{Consensus-Based Bundle Algorithm} (CBBA) of Choi, Brunet, and How~\cite{choi2009}, a decentralized auction that provably converges to a conflict-free, 50\%-optimal assignment for scoring functions satisfying the Diminishing Marginal Gains (DMG) property.
+CBBA and its descendants now underpin task allocation in hundreds of multi-robot systems~\cite{nestinger2018cbbaSurvey,verma2021cbbaApplications}.
+
+\subsection{Motivation: The Communication Gap}
+CBBA's guarantees, however, rest on an implicit physical assumption: that agents exchange their bid ledgers \emph{perfectly, instantaneously, and simultaneously}.
+No real swarm satisfies this assumption.
+A fleet of $N$ drones sharing one half-duplex radio channel cannot transmit concurrently; uncoordinated transmissions collide; packets are dropped by fading and interference; and information about a teammate's bid arrives only after a nonzero, topology-dependent delay~\cite{tardioli2019grounding,mott2020communication}.
+In contested environments---the very settings where swarms are most valuable---adversarial jamming and range limits widen this gap further.
+
+Closing it naively is dangerous.
+Serializing CBBA's message exchanges onto a shared channel introduces \emph{information staleness}: each agent acts on beliefs about teammates that are outdated by up to one full communication frame, and stale beliefs interact destructively with CBBA's conflict-resolution logic.
+Worse, when practitioners add the standard engineering safeguard of \emph{belief expiry}---discarding telemetry older than a validity horizon $T_{\mathrm{val}}$, so that lost or departed agents are forgotten~\cite{mott2020communication}---we find that staleness can become fatal:
+if a full TDMA cycle $N\tau$ exceeds $T_{\mathrm{val}}$, every agent's belief about every teammate expires before it can be refreshed; cascading allocation erasures then race against re-learning, and consensus becomes \emph{structurally unreachable}.
+To our knowledge, this failure mode---a \emph{synchronization--staleness phase transition} governed by the ratio $N\tau / T_{\mathrm{val}}$---has not been identified in the CBBA literature, despite belief-expiry heuristics being common practice in deployed systems.
+\subsection{Our Approach}
+We propose \textbf{TDMA-CBBA}, a communication-constrained formulation of CBBA in which:
+(i) agents transmit exclusively within assigned Time Division Multiple Access slots of duration $\tau$, eliminating intra-frame collisions by construction;
+(ii) transmissions are subject to independent stochastic packet loss on both transmit and receive legs;
+(iii) each agent maintains a time-stamped ledger of peers' bids and allocations, filtered through a belief-validity horizon $T_{\mathrm{val}}$; and
+(iv) a dynamic slot-allocation layer (\mbox{D-TDMA}) lets agents request doubled transmission time near threats or objectives, prioritizing safety-critical updates.
+Rather than treating the radio as an afterthought, we place the interplay between scheduling delay ($N\tau$) and belief staleness ($T_{\mathrm{val}}$) at the center of both the analysis and the experimental design.
+
+\subsection{Contributions}
+This paper makes four contributions:
+\begin{enumerate}
+    \item \textbf{Convergence theory under scheduled, lossy communication (Thm.~\ref{thm:convergence}).}
+    We prove that TDMA-CBBA converges to a conflict-free assignment within
+    $T_{TDMA} \leq T_{ideal} + N\tau K$
+    for $K$ auction rounds, provided one full TDMA frame fits within the belief-validity horizon, $N\tau \leq T_{\mathrm{val}}$ (Lemma~\ref{lem:frame}).
+    To our knowledge this is the first convergence result for CBBA under slotted medium access with explicit belief expiry.
+    \item \textbf{Optimality preservation despite stale bids (Thm.~\ref{thm:worstcase}).}
+    We prove that CBBA's 50\% optimality guarantee survives stale-bid conflicts induced by bounded communication delay: monotone ledger merging ensures transient misallocations are repaired by subsequent consensus rounds, so the final assignment retains $\mathcal{U}_{TDMA} \geq 0.5\,\mathcal{U}$ for DMG score functions.
+    \item \textbf{A synchronization--staleness phase transition (Sec.~\ref{sec:phase-transition}, Thm.~\ref{thm:impossibility}).}
+    We prove that when $N\tau > T_{\mathrm{val}}$, belief expiry renders global consensus unreachable, and we validate this impossibility result empirically: trials beyond the transition exhibit consensus rates collapsing toward zero while sub-transition trials converge reliably.
+    This yields an actionable design rule---scale the validity horizon with the TDMA frame.
+    \item \textbf{An open-source benchmark with rigorous statistics.}
+    We release a fully deterministic headless benchmark (1{,}620 runs across 54 configurations; swarm sizes 10--50, packet loss up to 30\%, three slot durations, four baseline radio models), formal metric definitions, non-parametric statistical analysis, and five publication-quality figures.
+    All code, raw data, and analysis pipelines are public.\footnote{\url{https://github.com/721189/swarm-robotics}}
+\end{enumerate}
+
+\subsection{Paper Outline}
+Section~\ref{sec:formulation} formulates the swarm, task, and communication models.
+Section~\ref{sec:methodology} details the TDMA-CBBA methodology, including the D-TDMA extension.
+Section~\ref{sec:theory} presents the theoretical analysis: convergence under ideal communication, convergence and the phase transition under TDMA constraints, worst-case optimality, and complexity.
+Section~\ref{sec:setup} specifies the experimental protocol.
+Section~\ref{sec:results} reports results.
+Section~\ref{sec:discussion} discusses limitations and future work, and Section~\ref{sec:conclusion} concludes.

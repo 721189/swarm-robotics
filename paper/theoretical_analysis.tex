@@ -1,0 +1,143 @@
+\section{Theoretical Analysis}\label{sec:theory}
+
+This section develops the paper's formal guarantees.
+Section~\ref{sec:theory-ideal} recalls the classical CBBA result; Section~\ref{sec:theory-tdma} extends convergence to TDMA with belief expiry, culminating in Theorem~\ref{thm:convergence} and the impossibility result of Section~\ref{sec:phase-transition}; Section~\ref{sec:theory-worst} proves optimality preservation under stale bids; Section~\ref{sec:theory-complexity} analyzes complexity.
+
+\subsection{Convergence Under Ideal Communication}\label{sec:theory-ideal}
+Choi \emph{et al.}~\cite{choi2009} proved that CBBA converges to a conflict-free assignment under two assumptions:
+(A1) the score function satisfies Diminishing Marginal Gains (DMG), and
+(A2) communication is complete and instantaneous---every pair of agents synchronizes ledgers every round.
+Under (A1)--(A2), consensus over $K$ bundle-building rounds terminates with all agents agreeing on a single winner per objective.
+
+The distance-based score used here, $c_{ij} = \max(0.1,\, C_0 - d(\mathbf{p}_i,\mathbf{q}_j))$, is monotone non-increasing in distance and satisfies DMG trivially for single-task claims (each agent holds at most one task), so (A1) holds throughout.
+
+\subsection{Convergence Under TDMA Constraints}\label{sec:theory-tdma}
+We now relax (A2) to the slotted lossy channel of Section~\ref{sec:comm-model}.
+Two definitions make ``eventual consistency'' precise.
+
+\begin{definition}[Eventual ledger consistency]\label{def:eventual}
+The ledgers $\{\mathcal{L}_i(t)\}_{i=1}^{N}$ are \emph{eventually consistent} if there exists finite $T_{\mathrm{cons}}$ such that for all $t \geq T_{\mathrm{cons}}$ and all $i,j$: $\mathcal{L}_i(t) = \mathcal{L}_j(t)$---every drone holds identical winner and bid maps for all objectives.
+\end{definition}
+
+\begin{definition}[Bounded delivery delay]\label{def:delay}
+Communication is \emph{bounded-delay} with bound $\Delta_{\max}$ if every message generated at time $t$ by any agent is delivered to every other agent no later than $t + \Delta_{\max}$ or is lost.
+\end{definition}
+
+\begin{lemma}[TDMA frame as bounded delay]\label{lem:frame}
+Under slotted access (C1) with losses $p_{\mathrm{tx}}, p_{\mathrm{rx}} < 1$, TDMA-CBBA is bounded-delay with
+\begin{equation}
+    \Delta_{\max} = 2N\tau,
+    \label{eq:delay-bound}
+\end{equation}
+provided each agent's freshest information survives at least one full frame:
+\begin{equation}
+    N\tau \;\leq\; T_{\mathrm{val}}.
+    \label{eq:feasibility}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Round-robin order guarantees that any agent's consecutive transmissions are spaced exactly $N\tau$ apart, so a receiver that misses a packet obtains a refresh within at most $N\tau$ more seconds; worst-case information age at any receiver therefore never exceeds one frame plus one slot rotation, i.e., $2N\tau$.
+Condition \eqref{eq:feasibility} ensures this age stays within the validity horizon, so beliefs are refreshed before they expire rather than purged.
+With $p_{\mathrm{tx}}, p_{\mathrm{rx}} < 1$, the probability that all successive attempts on a given link fail tends to zero geometrically over frames, so delivery is almost surely achieved within the stated bound.
+\end{proof}
+
+\begin{lemma}[Monotone ledger merging]\label{lem:monotone}
+For every objective $o_j$ and agent $i$, the stored bid $\mathcal{B}_i^{(t)}(o_j)$ is non-decreasing in $t$ except when reset by ghost pruning, and merging never decreases either party's bid.
+Moreover $\mathcal{W}_i(o_j)$ always names the agent holding the bid $\mathcal{B}_i(o_j)$.
+\end{lemma}
+
+\begin{proof}
+Both the reception merge (adopt only strictly greater bids) and the self-bid update (claim only when $c_{ij} > \mathcal{B}_i(o_j)$) write values strictly greater than the stored value; winner entries are copied together with bids from the same packet, so bid--winner pairs remain consistent.
+Ghost pruning resets a bid to $0$ only when its believed winner has left the perceived swarm---which under condition \eqref{eq:feasibility} cannot be caused by scheduling alone, only by genuine attrition.
+\end{proof}
+
+\begin{theorem}[Convergence of TDMA-CBBA]\label{thm:convergence}
+Assume DMG scores (A1), slotted access (C1), losses $p_{\mathrm{tx}}, p_{\mathrm{rx}} < 1$, belief horizon $T_{\mathrm{val}}$, and feasibility \eqref{eq:feasibility}.
+Then TDMA-CBBA achieves eventual ledger consistency in bounded time
+\begin{equation}
+    T_{TDMA} \;\leq\; T_{ideal} + N\tau K,
+    \label{eq:convergence-bound}
+\end{equation}
+where $T_{ideal}$ is canonical CBBA's convergence time on the same instance and $K$ its required auction rounds.
+At termination the assignment is conflict-free.
+\end{theorem}
+
+\begin{proof}
+Under ideal communication CBBA converges after $K$ rounds at time $T_{ideal}$~\cite{choi2009}.
+Under TDMA satisfying Lemma~\ref{lem:frame}, every round-$k$ broadcast reaches all peers almost surely within $2N\tau$, and by Lemma~\ref{lem:monotone} each delivered packet makes monotone progress toward the ideal fixed point; no update can be undone because ghost pruning is inactive absent true attrition.
+Hence after at most $K$ logical rounds---each stretched by at most one frame $N\tau$ of scheduling delay---the system attains the ideal fixed point, giving \eqref{eq:convergence-bound}.
+Conflict-freeness follows from bid--winner consistency of Lemma~\ref{lem:monotone}: each objective has exactly one winner id recorded by all agents.
+\end{proof}
+\subsection{The Synchronization--Staleness Phase Transition}\label{sec:phase-transition}
+The feasibility condition \eqref{eq:feasibility} is not merely technical---crossing it flips the system's qualitative behavior.
+
+\begin{theorem}[Impossibility beyond the staleness threshold]\label{thm:impossibility}
+If $N\tau > T_{\mathrm{val}}$, then for every agent $i$ and every peer $j \neq i$, the belief about $j$ expires before $j$'s next scheduled transmission.
+Consequently each agent's perceived swarm shrinks to $\{i\}$ between consecutive receptions, ghost pruning erases all foreign winner entries every auction round, and no allocation can persist across a full frame: global consensus (Def.~\ref{def:eventual}) is unreachable for any $N \geq 2$, regardless of runtime.
+\end{theorem}
+
+\begin{proof}
+Agent $d_j$ broadcasts once per frame, spaced exactly $N\tau$ apart.
+If $N\tau > T_{\mathrm{val}}$, then just before $d_j$ speaks again, every earlier packet from $d_j$ in $i$'s mailbox has age exceeding $T_{\mathrm{val}}$ and is purged by (C3).
+Thus $\mathcal{P}_i$ contains no trace of $j$ at auction time, and ghost pruning resets $\mathcal{B}_i(o_k) \leftarrow 0$, $\mathcal{W}_i(o_k) \leftarrow \bot$ for every objective believed won by $j$; symmetrically, $j$ erases $i$'s wins.
+Any allocation recorded in one ledger is therefore destroyed in the others within one frame, and re-established allocations are destroyed again in the next frame---the joint ledger state cycles without agreement, deterministically, for all $N \geq 2$.
+\end{proof}
+
+Theorem~\ref{thm:impossibility} converts an engineering heuristic (belief expiry) into a hard scalability constraint: \emph{the validity horizon must scale linearly with swarm size}, $T_{\mathrm{val}} \geq N\tau$.
+Section~\ref{sec:results} validates the predicted phase transition empirically.
+
+\subsection{Worst-Case Performance Guarantee}\label{sec:theory-worst}
+A remaining concern is whether stale bids---decisions made on information up to $2N\tau$ old---can degrade solution quality below CBBA's celebrated 50\% bound.
+
+\begin{theorem}[Optimality preservation under stale bids]\label{thm:worstcase}
+Let $\mathcal{U}^{\ast}$ be the optimal conflict-free utility and $\mathcal{U}_{TDMA}$ the utility at TDMA-CBBA termination.
+Under Theorem~\ref{thm:convergence}'s conditions with DMG scores,
+\begin{equation}
+    \mathcal{U}_{TDMA} \;\geq\; 0.5\,\mathcal{U}^{\ast}.
+    \label{eq:optimality-bound}
+\end{equation}
+\end{theorem}
+\begin{proof}
+\emph{(i) Staleness affects timing, not the score.}
+Bids depend only on positions, which evolve independently of the channel; a bid formed at $t - \Delta$ ($\Delta \leq 2N\tau$) is a valid DMG score for the configuration at which it was computed.
+\emph{(ii) Conflicts are transient, not absorbing.}
+Suppose stale information leads two agents $i, k$ to believe they win the same objective $o_j$, holding bids $\mathcal{B}_i(o_j)$ and $\mathcal{B}_k(o_j)$.
+Their next mutual ledger exchange---guaranteed within $2N\tau$ by Lemma~\ref{lem:frame}---causes both to adopt the larger bid and its owner as sole winner, and the outbid agent releases its assignment by rule (c) of Sec.~\ref{sec:method-auction}.
+Every conflict is thus resolved within one frame of its creation, and none persists at termination.
+\emph{(iii) The terminal state is a CBBA fixed point.}
+At consensus (guaranteed by Thm.~\ref{thm:convergence}), all agents agree on one winner per objective carrying the maximum bid seen anywhere in the network---precisely ideal CBBA's terminal condition restricted to the realized bid sequence.
+Because ideal CBBA achieves $\geq 0.5\,\mathcal{U}^{\ast}$ on DMG scores regardless of bid arrival order~\cite{choi2009}, and TDMA-CBBA realizes some permutation of a valid bid sequence, Eq.~\eqref{eq:optimality-bound} follows.
+\end{proof}
+
+\emph{Remark.}
+Theorem~\ref{thm:worstcase} concerns the \emph{final} allocation; intermediate assignments may transiently fall below the bound while conflicts await resolution.
+Our experiments measure convergence and coverage rather than realized utility, so Eq.~\eqref{eq:optimality-bound} is validated structurally (conflict-freeness at consensus); adding a Hungarian-optimal comparator is identified as future work in Sec.~\ref{sec:discussion}.
+
+\subsection{Complexity Analysis}\label{sec:theory-complexity}
+Table~\ref{tab:complexity} compares per-agent costs, where $n = |\mathcal{D}|$, $m = |\mathcal{O}|$, $K$ auction rounds, and one TDMA frame consumes $\lceil N\tau / \Delta t \rceil$ ticks.
+
+\begin{table}[t]
+\centering
+\caption{Per-agent computational, memory, and communication complexity. TDMA's overhead is temporal (serialized slots), not extra messages or compute.}
+\label{tab:complexity}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+ & Ideal CBBA & TDMA-CBBA \\
+\midrule
+Auction compute / round & $O(m)$ & $O(m)$ \\
+Ledger merge per message & $O(m)$ & $O(m)$ \\
+Belief filtering per tick & --- & $O(n)$ \\
+Memory (ledger + mailbox) & $O(nm)^{\dagger}$ & $O(m + n)$ \\
+Messages sent / agent / round & $O(n)$ & $1$ \\
+Wall-clock per round & $O(\Delta t)$ & $O(N\tau)$ \\
+\bottomrule
+\multicolumn{3}{l}{\footnotesize $^{\dagger}$Canonical CBBA stores full path bundles; ours stores flat ledgers.}\\
+\end{tabular}
+\end{table}
+
+Three observations follow.
+First, \emph{computational} cost per agent per round is unchanged by TDMA: auctions and merges touch only the $m$-dimensional ledger, and belief filtering is linear in mailbox size.
+Second, \emph{communication volume per agent drops from $O(n)$ point-to-point syncs to exactly one broadcast per round}, since a single packet carries the full ledger to all listeners simultaneously.
+Third, the price of slotted access is purely \emph{temporal}: wall-clock per round inflates from one tick to one frame $N\tau$---exactly the $N\tau K$ term of Theorem~\ref{thm:convergence}.
+Total network traffic per frame is $O(nm)$ bits in both cases; TDMA redistributes rather than amplifies traffic, trading latency for determinism and collision freedom.

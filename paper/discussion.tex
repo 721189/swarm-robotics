@@ -1,14 +1,37 @@
-\subsection{Discussion}
+\section{Discussion}\label{sec:discussion}
 
-This paper extends the Consensus-Based Bundle Algorithm (CBBA) with a TDMA scheduler to enforce realistic communication constraints in drone swarm task allocation. The key contributions are:
+\subsection{What the Results Mean for Swarm Designers}
+The synchronization--staleness phase transition (Thm.~\ref{thm:impossibility}) elevates a routine engineering parameter---how long to remember a teammate's telemetry---into a first-class scalability constraint.
+Concretely, with $\tau = 50$\,ms slots and $T_{\mathrm{val}} = 2$\,s, our analysis caps a fully convergent TDMA-CBBA fleet at $N \leq 40$ drones; larger fleets require either faster slots, hierarchical scheduling (cluster-based TDMA), or validity horizons that scale as $T_{\mathrm{val}} = c\,N\tau$.
+We emphasize that this constraint is \emph{structural}, not statistical: beyond the threshold no amount of additional runtime recovers consensus, because ghost pruning deterministically erases allocations faster than gossip can re-establish them.
 
-\begin{enumerate}
-    \item \textbf{Deterministic benchmark harness}: A fully reproducible headless simulation framework that varies swarm size, packet loss, and slot duration, with rigorous statistical analysis (Shapiro-Wilk, ANOVA, 95\% CIs).
-    \item \textbf{Convergence under TDMA}: Proof that TDMA only introduces a bounded delay $N \tau K$ to CBBA convergence, preserving the 50\% optimality guarantee.
-    \item \textbf{Quantified trade-offs}: Empirical data showing MTC grows linearly with swarm size and packet loss, while PDR remains robust under moderate loss ($p \leq 0.15$).
-    \item \textbf{Publication-ready figures}: Four exportable PNGs suitable for IEEE transactions, demonstrating convergence behavior, PDR degradation, and the MTC heatmap.
-\end{enumerate}
+Equally instructive is what does \emph{not} degrade: per-link PDR follows the analytic channel model independently of swarm logic (Table~\ref{tab:correlation}), and cohesion remains stable across radio conditions once assignments exist.
+The failure mode is therefore specific and localized---information age versus scheduling period---which is precisely what makes it fixable.
 
-\textbf{Limitations:} The benchmark uses a simplified 100$\times$100\,m environment with homogeneous combat drones. Future work should explore heterogeneous agent types, dynamic threat landscapes, and adaptive slot allocation (D-TDMA). The linear convergence bound $T_{TDMA} \leq T_{ideal} + N \tau K$ is loose for large $K$; tighter bounds could be derived from the CBBA gossip convergence literature.
+\subsection{Relation to Prior Work}
+Our results refine, rather than contradict, CBBA theory~\cite{choi2009}: under bounded-delay communication whose bound respects belief expiry, all classical guarantees carry over (Thms.~\ref{thm:convergence}--\ref{thm:worstcase}).
+The phase transition complements asynchronous-CBBA analyses that assume infinite belief persistence; it shows those analyses do not survive the addition of standard forgetting mechanisms.
+D-TDMA connects to demand-assigned MAC protocols in tactical networks, but to our knowledge its coupling to auction convergence---and the doubled-horizon condition $2N\tau \leq T_{\mathrm{val}}$---is new.
 
-\textbf{Future Directions:} Integrate the benchmark with the Streamlit UI for interactive parameter sweep, extend the convergence proof to stochastic packet loss models, and explore learned TDMA slot assignment to minimise the $N \tau$ overhead.
+\subsection{Limitations}
+Several limitations bound the scope of our claims.
+\emph{(i) Scale.}
+Experiments span $n \leq 50$ in simulation; physical swarms introduce latency jitter, asymmetric links, and localization error absent here.
+\emph{(ii) Static tasks.}
+Objectives are stationary; dynamic task arrival would exercise bundle re-planning paths not covered by our single-claim auction.
+\emph{(iii) Utility measurement.}
+Theorem~\ref{thm:worstcase} is validated structurally (conflict-freeness at consensus); we do not yet report realized utility against a Hungarian-optimal upper bound, so Eq.~\eqref{eq:optimality-bound}'s tightness in practice remains open.
+\emph{(iv) Homogeneity and attrition.}
+All agents share parameters, battery attrition is disabled in the benchmark corpus, so the fault-tolerance path of ghost pruning is exercised only through belief expiry rather than true agent loss.
+\emph{(v) D-TDMA coverage.}
+The D-TDMA extension is specified and implemented but was disabled in the released matrix; its empirical characterization is future work.
+\emph{(vi) Loss asymmetry.}
+The $p_{\mathrm{rx}} = p_{\mathrm{tx}}/2$ convention is a modeling choice; sensitivity to this ratio is unexplored.
+
+\subsection{Future Work}
+Four directions follow directly.
+First, \emph{adaptive horizons}: let each agent set $T_{\mathrm{val},i} = \hat{c}\,\widehat{N}\tau$ from its estimated neighbor count, converting Theorem~\ref{thm:impossibility}'s constraint into a self-scaling protocol.
+Second, \emph{utility-grounded evaluation}: add an optimal-assignment oracle to measure realized optimality ratios and empirically test Theorem~\ref{thm:worstcase}'s tightness.
+Third, \emph{hierarchical scheduling}: cluster-based TDMA can shrink effective frame length below $N\tau$, pushing the phase transition outward without faster radios.
+Fourth, \emph{learned slot allocation}: replace proximity-triggered doubling with a lightweight learned policy that anticipates contention, trading a small compute budget for further latency reduction.
+Finally, physical-hardware trials on a $10$--$20$ drone testbed with real 2.4\,GHz radios would anchor the simulation-to-reality gap.

@@ -1,29 +1,77 @@
-\section{Problem Formulation}
+\section{Problem Formulation}\label{sec:formulation}
 
-\subsection{Swarm Model}
-Let $\mathcal{D} = \{d_1, d_2, \ldots, d_n\}$ be a set of $n$ autonomous drones operating in a bounded 2D environment $\mathcal{W} \subset \mathbb{R}^2$.
+We consider a team of $N$ homogeneous drones required to allocate themselves to a set of geographically distributed objectives in a bounded planar workspace, under a contention-limited radio channel. Table~\ref{tab:notation} summarizes the notation.
 
-Each drone $d_i$ is characterized by:
+\begin{table}[t]
+\centering
+\caption{Summary of notation.}
+\label{tab:notation}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Symbol & Meaning \\
+\midrule
+$N$, $M$ & Number of drones, number of objectives \\
+$\mathbf{p}_i(t), \mathbf{v}_i(t)$ & Position, velocity of drone $i$ at time $t$ \\
+$a_i(t) \in \mathcal{O} \cup \{\varnothing\}$ & Task assignment of drone $i$ \\
+$b_i(t) \in [0, B_{\max}]$ & Battery level of drone $i$ \\
+$s_i \in \{0,\dots,N{-}1\}$ & TDMA slot index of drone $i$ \\
+$\tau$ & TDMA slot duration [s] \\
+$p_{\mathrm{tx}}, p_{\mathrm{rx}}$ & Transmit-, receive-leg packet loss probability \\
+$c_{ij}$ & Bid (score) of drone $i$ for objective $j$ \\
+$\mathcal{L}_i(t) = (\mathcal{W}_i, \mathcal{B}_i)$ & Ledger $i$: winner map $\mathcal{W}_i$, bid map $\mathcal{B}_i$ \\
+$T_{\mathrm{val}}$ & Belief-validity horizon [s] \\
+$K$ & Number of auction/consensus rounds \\
+$L$ & Workspace side length (100\,m) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Swarm Model}\label{sec:swarm-model}
+Let $\mathcal{D} = \{d_1, d_2, \ldots, d_N\}$ be a set of $N$ autonomous drones operating in a bounded two-dimensional environment $\mathcal{W} \subset \mathbb{R}^2$, a square of side $L = 100$\,m.
+Each drone $d_i$ is characterized at time $t$ by:
 \begin{itemize}
-    \item Position $\mathbf{p}_i(t) \in \mathcal{W}$
-    \item Velocity $\mathbf{v}_i(t) \in \mathbb{R}^2$
-    \item Battery level $b_i(t) \in [0, 1]$
-    \item Task assignment $a_i(t) \in \mathcal{O} \cup \{\emptyset\}$
+    \item position $\mathbf{p}_i(t) \in \mathcal{W}$ and velocity $\mathbf{v}_i(t) \in \mathbb{R}^2$, integrated at timestep $\Delta t = 0.1$\,s with first-order steering dynamics;
+    \item battery level $b_i(t) \in [0, B_{\max}]$; a drone whose battery reaches zero is removed from $\mathcal{D}$ (attrition);
+    \item task assignment $a_i(t) \in \mathcal{O} \cup \{\varnothing\}$;
+    \item a local \emph{ledger} $\mathcal{L}_i(t) = (\mathcal{W}_i(t), \mathcal{B}_i(t))$, where $\mathcal{W}_i: \mathcal{O} \to \mathcal{D} \cup \{\bot\}$ maps each objective to its believed winner and $\mathcal{B}_i: \mathcal{O} \to \mathbb{R}_{\geq 0}$ stores the corresponding highest known bid;
+    \item a \emph{mailbox} $\mathcal{M}_i(t) = \{(j, \mathbf{m}, t^{\mathrm{rx}})\}$ of time-stamped messages received from peers.
 \end{itemize}
 
-\subsection{Objective Model}
-Let $\mathcal{O} = \{o_1, o_2, \ldots, o_m\}$ be a set of $m$ objectives.
-Each objective $o_j$ has:
-\begin{itemize}
-    \item Position $\mathbf{q}_j \in \mathcal{W}$
-    \item Value $v_j \in \mathbb{R}^+$
-\end{itemize}
+\subsection{Objective and Threat Model}\label{sec:objective-model}
+Let $\mathcal{O} = \{o_1, o_2, \ldots, o_M\}$ be a set of $M$ static objectives.
+Each objective $o_j$ has position $\mathbf{q}_j \in \mathcal{W}$ and value $v_j \in \mathbb{R}^{+}$.
+The environment additionally contains $k$ surface-to-air-missile (SAM) threat zones $\mathcal{T} = \{\theta_1, \ldots, \theta_k\}$; each threat $\theta_l$ is a disc $(\mathbf{x}_l, r_l, s_l)$ centered at $\mathbf{x}_l$ with radius $r_l$ and strength $s_l$ that exerts on drone $i$ a repulsive potential
+\begin{equation}
+    U_{\mathrm{threat}}(\mathbf{p}_i) = s_l \left( \frac{1}{d(\mathbf{p}_i, \mathbf{x}_l)} - \frac{1}{r_l} \right)^{2}, \quad d(\mathbf{p}_i, \mathbf{x}_l) < r_l,
+    \label{eq:threat-potential}
+\end{equation}
+where $d(\cdot,\cdot)$ denotes Euclidean distance.
+Threats shape motion but do not directly destroy drones in this study; agent loss occurs only through battery attrition.
 
-\subsection{Communication Model}
-Communication is governed by a TDMA scheduler:
-\begin{itemize}
-    \item Time is divided into slots of duration $\tau$
-    \item Each drone $d_i$ is assigned a unique slot $s_i \in \{0, 1, \ldots, n-1\}$
-    \item Transmission occurs only during assigned slot
-    \item Packet loss probability $p \in [0, 1]$
-\end{itemize}
+\subsection{Communication Model}\label{sec:comm-model}
+Communication is governed by a slotted medium-access discipline with stochastic loss:
+
+\emph{(C1) Slotted access (TDMA).}
+Time is divided into slots of duration $\tau$; each drone $d_i$ owns exactly one slot $s_i \in \{0, 1, \ldots, N-1\}$ per frame of length $N\tau$, and may broadcast only during $s_i$.
+A frame therefore contains exactly one transmission opportunity per drone.
+
+\emph{(C2) Two-stage packet loss.}
+A broadcast by $d_i$ is lost entirely with probability $p_{\mathrm{tx}}$; independently, each intended receiver $d_j$ fails to decode the packet with probability $p_{\mathrm{rx}}$.
+Delivery on link $(i,j)$ thus succeeds with probability $(1 - p_{\mathrm{tx}})(1 - p_{\mathrm{rx}})$.
+
+\emph{(C3) Belief validity horizon.}
+Each received message is stored with its timestamp and is considered valid only while $t - t^{\mathrm{msg}} \leq T_{\mathrm{val}}$.
+Expired beliefs are purged from $\mathcal{M}_i$, which in turn removes the corresponding peer from drone $i$'s \emph{perceived swarm}---the set of teammates it believes to be alive and active.
+
+\emph{(C4) Baselines.}
+Setting $\tau \to 0$ (all agents transmit every frame) yields an unslotted \emph{open channel}; further setting $p_{\mathrm{tx}} = p_{\mathrm{rx}} = 0$ yields the \emph{ideal} channel assumed by canonical CBBA~\cite{choi2009}.
+These degenerate cases define the four radio baselines evaluated in Section~\ref{sec:setup}.
+
+\subsection{Task Allocation Problem Statement}\label{sec:problem-statement}
+The objective is a decentralized, conflict-free assignment $a: \mathcal{D} \to \mathcal{O} \cup \{\varnothing\}$ that maximizes total utility
+\begin{equation}
+    \mathcal{U}(a) = \textstyle\sum_{i=1}^{N} c_{ii}\!\left(a(i)\right),
+    \label{eq:utility}
+\end{equation}
+where $c_{ij} = \max(0.1,\; C_0 - d(\mathbf{p}_i, \mathbf{q}_j))$ is drone $i$'s bid for objective $o_j$ ($C_0 = 100$), subject to (a) each objective receiving at most one winner, (b) convergence to ledger agreement within the mission horizon, and (c) operation over the lossy slotted channel of Section~\ref{sec:comm-model}.
+Conflict-freeness is defined by agreement: the allocation is settled when all ledgers coincide, $\mathcal{L}_1(t) = \cdots = \mathcal{L}_N(t)$.

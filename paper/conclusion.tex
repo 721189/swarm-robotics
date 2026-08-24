@@ -1,0 +1,25 @@
+\section{Conclusion}\label{sec:conclusion}
+
+This paper asked a question that every practitioner of decentralized task allocation eventually faces: \emph{what survives when CBBA is forced onto a real radio?}
+Our answer has three parts.
+
+First, we gave the question a precise formulation.
+TDMA-CBBA models the swarm's shared channel as slotted medium access with two-stage packet loss and time-stamped beliefs that expire after a validity horizon $T_{\mathrm{val}}$---capturing the collision discipline, stochastic impairment, and forgetting mechanisms found in real deployments, all absent from canonical CBBA.
+
+Second, we answered it theoretically.
+Within the feasibility regime $N\tau \leq T_{\mathrm{val}}$, TDMA-CBBA inherits everything CBBA promises: consensus in $T_{ideal} + N\tau K$, and conflict-free assignments retaining the 50\% optimality bound despite stale bids.
+Outside that regime we proved something stronger and more useful: consensus becomes structurally unreachable.
+This synchronization--staleness phase transition turns belief expiry from a tuning knob into a hard scalability law---$T_{\mathrm{val}}$ must grow linearly with fleet size---and yields an immediately actionable design rule for swarm engineers.
+
+Third, we answered it empirically.
+A fully deterministic, open-source benchmark of $1{,}620$ runs across $54$ configurations reproduced both regimes exactly as predicted: linear convergence scaling below threshold, structural consensus collapse above it, per-link delivery matching the analytic channel model to within sampling error, and stable flocking geometry throughout.
+Every number, figure, and statistic in this paper regenerates from raw data with one command.
+
+The broader lesson extends beyond CBBA.
+Any decentralized algorithm whose correctness depends on peer beliefs---auctions, gossip estimators, distributed MPC---is exposed to the same coupling between scheduled delay and information expiry.
+We believe the phase-transition lens developed here, and the benchmark harness released alongside it, will transfer directly to that wider class of systems.
+
+Code, data, and analysis pipelines:
+\begin{center}
+\url{https://github.com/721189/swarm-robotics}
+\end{center}

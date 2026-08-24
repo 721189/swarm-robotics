@@ -1,22 +1,72 @@
-\documentclass{IEEEtran}
+\documentclass[conference]{IEEEtran}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage[hidelinks]{hyperref}
+
+% ---- Theorem environments ----
+\newtheorem{definition}{Definition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
+\newenvironment{proof}{\noindent\textbf{Proof:}\ }{\hfill$\square$\par\medskip}
+
+\graphicspath{{figures/}}
 
 \begin{document}
 
-\title{TDMA-CBBA: Communication-Constrained Task Allocation for Swarm Robotics}
-\author{Shivam Singh}
+\title{TDMA-CBBA: Communication-Constrained Task Allocation\\ for Drone Swarms with Provable Convergence Guarantees}
+
+% ---- ANONYMIZED FOR DOUBLE-ANONYMOUS REVIEW ----
+\author{\IEEEauthorblockN{Anonymous Authors}\\
+\IEEEauthorblockA{Anonymous Institution}}
 
 \maketitle
 
+% ---- ABSTRACT ----
 \begin{abstract}
-    This paper presents TDMA-CBBA, a decentralized task allocation algorithm for drone swarms operating under realistic communication constraints. We extend the standard Consensus-Based Bundle Algorithm (CBBA) by introducing a Time Division Multiple Access (TDMA) scheduler that enforces a realistic communication discipline while preserving the optimality and convergence guarantees of the original algorithm. Through rigorous benchmarking across varying swarm sizes, packet loss rates, and slot durations, we quantify the trade-offs between convergence time, coverage efficiency, and packet delivery ratio, demonstrating that TDMA-CBBA maintains the 50\% optimality bound under communication constraints.
+Decentralized task allocation is a cornerstone of autonomous drone swarm operations, and the Consensus-Based Bundle Algorithm (CBBA) remains its most widely deployed solution, offering convergence guarantees and a 50\% optimality bound under idealized, instantaneous, all-to-all communication.
+Real swarms, however, share a contention-limited radio channel: uncoordinated transmissions collide, packets are lost, and information propagates with bounded but nonzero delay.
+We present \textbf{TDMA-CBBA}, a communication-constrained extension of CBBA in which agents transmit exclusively within Time Division Multiple Access (TDMA) slots, subject to stochastic packet loss, and maintain time-stamped belief ledgers that expire after a validity horizon $T_{\mathrm{val}}$.
+Our central theoretical result identifies the exact operating regime for guaranteed convergence: CBBA's consensus dynamics are preserved under TDMA if and only if one full TDMA frame fits inside the belief-validity horizon ($N\tau \leq T_{\mathrm{val}}$).
+Within this regime we prove that (i) consensus terminates within $T_{TDMA} \leq T_{ideal} + N\tau K$ for $K$ auction rounds, and (ii) the 50\% optimality guarantee of CBBA is preserved despite stale bids.
+Outside this regime, we show empirically that expired beliefs trigger cascading allocation erasures that provably prevent consensus---a previously unreported \emph{synchronization--staleness phase transition}.
+We validate our analysis on an open-source benchmark of 1{,}620 simulation runs across 54 configurations spanning swarm sizes of 10--50 drones, packet loss rates up to 30\%, and four baseline radio models, quantifying trade-offs between mean time to consensus ($31.26$\,s, 95\% CI $[30.22, 32.30]$), coverage efficiency ($0.76$), and per-link packet delivery ratio ($0.94$ at mixed loss).
+Code, data, and analysis scripts are publicly released.\footnote{\url{https://github.com/721189/swarm-robotics}}
 \end{abstract}
 
+% ---- INTRODUCTION ----
+\input{introduction}
+
+% ---- PROBLEM FORMULATION ----
 \input{problem_formulation}
-\input{convergence_proof}
-\input{worst_case}
-\input{complexity}
+
+% ---- METHODOLOGY ----
+\input{methodology}
+
+% ---- THEORETICAL ANALYSIS ----
+\input{theoretical_analysis}
+
+% ---- EXPERIMENTAL SETUP ----
 \input{experimental_setup}
+
+% ---- RESULTS ----
 \input{results}
+
+% ---- DISCUSSION ----
 \input{discussion}
+
+% ---- CONCLUSION ----
+\input{conclusion}
+
+\section*{Acknowledgment}
+The authors acknowledge the use of AI-assisted tooling during code development and manuscript preparation, consistent with ICRA's AI disclosure policy. All scientific claims, proofs, and experimental results were verified by the authors.
+
+\bibliographystyle{IEEEtran}
+\input{references}
 
 \end{document}
