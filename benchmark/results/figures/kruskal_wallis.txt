@@ -1,0 +1,27 @@
+=== KRUSKAL-WALLIS + DUNN-BONFERRONI ===
+
+mtc: H=115.509 p=0.0000
+  ideal_omni vs no_tdma_packet_loss: U=280 p=0.0237
+  ideal_omni vs tdma_clean: U=0 p=0.0000
+  ideal_omni vs tdma_packet_loss: U=0 p=0.0000
+  no_tdma_packet_loss vs tdma_clean: U=0 p=0.0000
+  no_tdma_packet_loss vs tdma_packet_loss: U=0 p=0.0000
+  tdma_clean vs tdma_packet_loss: U=296 p=0.0337
+
+sci: H=11.542 p=0.0091
+  ideal_omni vs no_tdma_packet_loss: U=449 p=0.9947
+  ideal_omni vs tdma_clean: U=65 p=0.0512
+  ideal_omni vs tdma_packet_loss: U=554 p=0.1704
+  no_tdma_packet_loss vs tdma_clean: U=260 p=0.0121
+  no_tdma_packet_loss vs tdma_packet_loss: U=2219 p=0.0281
+  tdma_clean vs tdma_packet_loss: U=640 p=0.0118
+
+ce: H=6.587 p=0.0863
+
+pdr: H=42.985 p=0.0000
+  ideal_omni vs no_tdma_packet_loss: U=788 p=0.0000
+  ideal_omni vs tdma_clean: U=112 p=1.0000
+  ideal_omni vs tdma_packet_loss: U=788 p=0.0000
+  no_tdma_packet_loss vs tdma_clean: U=112 p=0.0000
+  no_tdma_packet_loss vs tdma_packet_loss: U=1786 p=0.9452
+  tdma_clean vs tdma_packet_loss: U=788 p=0.0000

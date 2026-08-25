@@ -1,0 +1,5 @@
+=== PDR MODEL VALIDATION ===
+
+p_tx=0.05: joint=0.9262 rx=0.9750 obs_w=0.9764 matchA=NO
+p_tx=0.15: joint=0.7863 rx=0.9250 obs_w=0.9262 matchA=NO
+p_tx=0.30: joint=0.5950 rx=0.8500 obs_w=0.8501 matchA=NO

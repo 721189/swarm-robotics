@@ -1,0 +1,19 @@
+=== PDR by nominal transmit-loss ===
+               n  pdr_mean  pdr_std  pdr_min  pdr_max  frames_mean  conv_rate  model_A_joint  model_B_cond
+packet_loss                                                                                               
+0.00         405    1.0000   0.0000   1.0000   1.0000     202.4296     0.7704         1.0000         1.000
+0.05         405    0.9753   0.0050   0.9524   0.9872     308.7852     0.4741         0.9262         0.975
+0.15         405    0.9242   0.0098   0.8730   0.9420     353.8000     0.3333         0.7862         0.925
+0.30         405    0.8491   0.0081   0.8187   0.8720     400.4296     0.2889         0.5950         0.850
+
+corpus mean PDR: 0.9372
+trial-weighted model B mean: 0.9375
+trial-weighted model A mean: 0.8269
+
+=== Update rate (successful sends per frame), n=30 ===
+packet_loss
+0.00    1.0000
+0.05    0.9555
+0.15    0.8483
+0.30    0.6919
+(1-p_tx) reference: {np.float64(0.0): np.float64(1.0), np.float64(0.05): np.float64(0.95), np.float64(0.15): np.float64(0.85), np.float64(0.3): np.float64(0.7)}

@@ -1,46 +1,56 @@
 \section{Theoretical Analysis}\label{sec:theory}
 
-This section develops the paper's formal guarantees.
-Section~\ref{sec:theory-ideal} recalls the classical CBBA result; Section~\ref{sec:theory-tdma} extends convergence to TDMA with belief expiry, culminating in Theorem~\ref{thm:convergence} and the impossibility result of Section~\ref{sec:phase-transition}; Section~\ref{sec:theory-worst} proves optimality preservation under stale bids; Section~\ref{sec:theory-complexity} analyzes complexity.
+This section develops the paper's formal guarantees under a communication model that is honest about stochastic loss.
+Section~\ref{sec:theory-age} defines the \emph{belief-age process}---the exact quantity whose interplay with scheduling produces both the guarantees and the failure mode.
+Sections~\ref{sec:theory-noiseless}--\ref{sec:theory-stoch} then state what does and does not survive: a deterministic convergence guarantee in the noiseless regime, a probabilistic guarantee under stochastic loss, and a structural impossibility beyond the staleness threshold.
+Section~\ref{sec:theory-worst} treats optimality under explicitly frozen scores, and Section~\ref{sec:theory-complexity} analyzes complexity.
 
-\subsection{Convergence Under Ideal Communication}\label{sec:theory-ideal}
-Choi \emph{et al.}~\cite{choi2009} proved that CBBA converges to a conflict-free assignment under two assumptions:
-(A1) the score function satisfies Diminishing Marginal Gains (DMG), and
-(A2) communication is complete and instantaneous---every pair of agents synchronizes ledgers every round.
-Under (A1)--(A2), consensus over $K$ bundle-building rounds terminates with all agents agreeing on a single winner per objective.
+Throughout, $q = (1-p_{\mathrm{tx}})(1-p_{\mathrm{rx}})$ denotes the per-frame end-to-end delivery success probability on a link, and all probabilistic statements are with respect to the independent loss process of Sec.~\ref{sec:comm-model}.
 
-The distance-based score used here, $c_{ij} = \max(0.1,\, C_0 - d(\mathbf{p}_i,\mathbf{q}_j))$, is monotone non-increasing in distance and satisfies DMG trivially for single-task claims (each agent holds at most one task), so (A1) holds throughout.
+\subsection{The Belief-Age Process}\label{sec:theory-age}
 
-\subsection{Convergence Under TDMA Constraints}\label{sec:theory-tdma}
-We now relax (A2) to the slotted lossy channel of Section~\ref{sec:comm-model}.
-Two definitions make ``eventual consistency'' precise.
+The central object is not the delay of a single packet but the \emph{age} of each agent's belief about each peer.
 
-\begin{definition}[Eventual ledger consistency]\label{def:eventual}
-The ledgers $\{\mathcal{L}_i(t)\}_{i=1}^{N}$ are \emph{eventually consistent} if there exists finite $T_{\mathrm{cons}}$ such that for all $t \geq T_{\mathrm{cons}}$ and all $i,j$: $\mathcal{L}_i(t) = \mathcal{L}_j(t)$---every drone holds identical winner and bid maps for all objectives.
+\begin{definition}[Inter-success gap]\label{def:gap}
+Fix a directed link $(j \to i)$. Agent $d_j$ transmits once per TDMA frame (period $N\tau$); each attempt survives the sender leg with probability $u = 1 - p_{\mathrm{tx}}$ and is decoded by $d_i$ with probability $r = 1 - p_{\mathrm{rx}}$, independently across frames and links, giving per-frame success $q = ur$.
+The \emph{inter-success gap} $G_{ij}$ is the elapsed time between consecutive packets from $d_j$ received by $d_i$: it takes values $G_{ij} = k\,N\tau$ ($k \geq 1$) with
+\begin{equation}
+    \Pr[G_{ij} = k N\tau] = (1-q)^{\,k-1}\, q,
+    \label{eq:gap-geom}
+\end{equation}
+and expected value $\mathbb{E}[G_{ij}] = N\tau / q$.
 \end{definition}
 
-\begin{definition}[Bounded delivery delay]\label{def:delay}
-Communication is \emph{bounded-delay} with bound $\Delta_{\max}$ if every message generated at time $t$ by any agent is delivered to every other agent no later than $t + \Delta_{\max}$ or is lost.
+A belief about $d_j$ held by $d_i$ expires exactly when the current gap exceeds the validity horizon: $\mathbb{1}[G_{ij} > T_{\mathrm{val}}]$.
+The geometry of Eq.~\eqref{eq:gap-geom} is captured by a single integer.
+
+\begin{definition}[Loss-immunity budget]\label{def:immunity}
+The \emph{loss-immunity budget} of the configuration $(N, \tau, T_{\mathrm{val}})$ is
+\begin{equation}
+    \Lambda \;=\; \left\lceil \frac{T_{\mathrm{val}}}{N\tau} \right\rceil - 1 \;\geq\; 0,
+    \label{eq:immunity}
+\end{equation}
+the maximum number of consecutively lost frames a link can absorb while the belief remains valid up to the moment of refresh.
+Equivalently, expiry occurs on a link iff its gap spans $\Lambda + 2$ or more frame periods.
 \end{definition}
 
-\begin{lemma}[TDMA frame as bounded delay]\label{lem:frame}
-Under slotted access (C1) with losses $p_{\mathrm{tx}}, p_{\mathrm{rx}} < 1$, TDMA-CBBA is bounded-delay with
-\begin{equation}
-    \Delta_{\max} = 2N\tau,
-    \label{eq:delay-bound}
-\end{equation}
-provided each agent's freshest information survives at least one full frame:
-\begin{equation}
-    N\tau \;\leq\; T_{\mathrm{val}}.
-    \label{eq:feasibility}
-\end{equation}
-\end{lemma}
+Two per-link quantities follow immediately from Definitions~\ref{def:gap}--\ref{def:immunity}:
 
-\begin{proof}
-Round-robin order guarantees that any agent's consecutive transmissions are spaced exactly $N\tau$ apart, so a receiver that misses a packet obtains a refresh within at most $N\tau$ more seconds; worst-case information age at any receiver therefore never exceeds one frame plus one slot rotation, i.e., $2N\tau$.
-Condition \eqref{eq:feasibility} ensures this age stays within the validity horizon, so beliefs are refreshed before they expire rather than purged.
-With $p_{\mathrm{tx}}, p_{\mathrm{rx}} < 1$, the probability that all successive attempts on a given link fail tends to zero geometrically over frames, so delivery is almost surely achieved within the stated bound.
-\end{proof}
+\begin{equation}
+    \underbrace{\pi_{\mathrm{exp}} = (1-q)^{\Lambda+1}}_{\text{expiry prob.\ per refresh opportunity}}
+    \qquad
+    \underbrace{\frac{N\tau}{q} \leq T_{\mathrm{val}}}_{\text{mean-gap (freshness) condition}},
+    \label{eq:pi-exp}
+\end{equation}
+where the second is equivalent to $q \geq N\tau / T_{\mathrm{val}}$.
+The budget $\Lambda$ cleanly unifies the regimes discussed in this paper:
+$\Lambda = 0$ (i.e., $N\tau \leq T_{\mathrm{val}} < 2N\tau$) means a single lost frame already triggers expiry;
+larger $\Lambda$ buys robustness linearly in $T_{\mathrm{val}}$;
+and the D-TDMA extension of Sec.~\ref{sec:dtdma}, by stretching granted slots to $2\tau$, at most doubles the effective frame period and therefore \emph{halves} the immunity available near threshold.
+
+This decomposition also separates the two loss mechanisms functionally:
+$p_{\mathrm{tx}}$ enters only through the update rate $u = 1-p_{\mathrm{tx}}$ (it suppresses whole transmissions, inflating gaps toward the mean condition), whereas $p_{\mathrm{rx}}$ acts as pure per-link erasure inside $q$.
+Empirically this split is exact in our simulator (Sec.~\ref{sec:results}): measured per-link PDR equals $r = 1 - p_{\mathrm{rx}}$ conditioned on transmission, and measured successful-update frequency equals $u$.
 
 \begin{lemma}[Monotone ledger merging]\label{lem:monotone}
 For every objective $o_j$ and agent $i$, the stored bid $\mathcal{B}_i^{(t)}(o_j)$ is non-decreasing in $t$ except when reset by ghost pruning, and merging never decreases either party's bid.
@@ -49,73 +59,118 @@ Moreover $\mathcal{W}_i(o_j)$ always names the agent holding the bid $\mathcal{B
 
 \begin{proof}
 Both the reception merge (adopt only strictly greater bids) and the self-bid update (claim only when $c_{ij} > \mathcal{B}_i(o_j)$) write values strictly greater than the stored value; winner entries are copied together with bids from the same packet, so bid--winner pairs remain consistent.
-Ghost pruning resets a bid to $0$ only when its believed winner has left the perceived swarm---which under condition \eqref{eq:feasibility} cannot be caused by scheduling alone, only by genuine attrition.
+Ghost pruning resets a bid to $0$ only when its believed winner has left the perceived swarm---which under expiry-free operation cannot be caused by scheduling alone, only by genuine attrition.
 \end{proof}
 
-\begin{theorem}[Convergence of TDMA-CBBA]\label{thm:convergence}
-Assume DMG scores (A1), slotted access (C1), losses $p_{\mathrm{tx}}, p_{\mathrm{rx}} < 1$, belief horizon $T_{\mathrm{val}}$, and feasibility \eqref{eq:feasibility}.
-Then TDMA-CBBA achieves eventual ledger consistency in bounded time
+
+\subsection{Guarantee I: Noiseless Regime (Deterministic)}\label{sec:theory-noiseless}
+
+We first state what holds exactly, without probabilistic qualification.
+
+\begin{theorem}[Noiseless convergence]\label{thm:noiseless}
+Assume DMG scores (A1), slotted access with $p_{\mathrm{tx}} = p_{\mathrm{rx}} = 0$ (hence $q = 1$, $G_{ij} = N\tau$ deterministically), and the freshness condition
 \begin{equation}
-    T_{TDMA} \;\leq\; T_{ideal} + N\tau K,
-    \label{eq:convergence-bound}
+    N\tau \;\leq\; T_{\mathrm{val}} .
+    \label{eq:noiseless-cond}
 \end{equation}
-where $T_{ideal}$ is canonical CBBA's convergence time on the same instance and $K$ its required auction rounds.
-At termination the assignment is conflict-free.
-\end{theorem}
-
-\begin{proof}
-Under ideal communication CBBA converges after $K$ rounds at time $T_{ideal}$~\cite{choi2009}.
-Under TDMA satisfying Lemma~\ref{lem:frame}, every round-$k$ broadcast reaches all peers almost surely within $2N\tau$, and by Lemma~\ref{lem:monotone} each delivered packet makes monotone progress toward the ideal fixed point; no update can be undone because ghost pruning is inactive absent true attrition.
-Hence after at most $K$ logical rounds---each stretched by at most one frame $N\tau$ of scheduling delay---the system attains the ideal fixed point, giving \eqref{eq:convergence-bound}.
-Conflict-freeness follows from bid--winner consistency of Lemma~\ref{lem:monotone}: each objective has exactly one winner id recorded by all agents.
-\end{proof}
-\subsection{The Synchronization--Staleness Phase Transition}\label{sec:phase-transition}
-The feasibility condition \eqref{eq:feasibility} is not merely technical---crossing it flips the system's qualitative behavior.
-
-\begin{theorem}[Impossibility beyond the staleness threshold]\label{thm:impossibility}
-If $N\tau > T_{\mathrm{val}}$, then for every agent $i$ and every peer $j \neq i$, the belief about $j$ expires before $j$'s next scheduled transmission.
-Consequently each agent's perceived swarm shrinks to $\{i\}$ between consecutive receptions, ghost pruning erases all foreign winner entries every auction round, and no allocation can persist across a full frame: global consensus (Def.~\ref{def:eventual}) is unreachable for any $N \geq 2$, regardless of runtime.
-\end{theorem}
-
-\begin{proof}
-Agent $d_j$ broadcasts once per frame, spaced exactly $N\tau$ apart.
-If $N\tau > T_{\mathrm{val}}$, then just before $d_j$ speaks again, every earlier packet from $d_j$ in $i$'s mailbox has age exceeding $T_{\mathrm{val}}$ and is purged by (C3).
-Thus $\mathcal{P}_i$ contains no trace of $j$ at auction time, and ghost pruning resets $\mathcal{B}_i(o_k) \leftarrow 0$, $\mathcal{W}_i(o_k) \leftarrow \bot$ for every objective believed won by $j$; symmetrically, $j$ erases $i$'s wins.
-Any allocation recorded in one ledger is therefore destroyed in the others within one frame, and re-established allocations are destroyed again in the next frame---the joint ledger state cycles without agreement, deterministically, for all $N \geq 2$.
-\end{proof}
-
-Theorem~\ref{thm:impossibility} converts an engineering heuristic (belief expiry) into a hard scalability constraint: \emph{the validity horizon must scale linearly with swarm size}, $T_{\mathrm{val}} \geq N\tau$.
-Section~\ref{sec:results} validates the predicted phase transition empirically.
-
-\subsection{Worst-Case Performance Guarantee}\label{sec:theory-worst}
-A remaining concern is whether stale bids---decisions made on information up to $2N\tau$ old---can degrade solution quality below CBBA's celebrated 50\% bound.
-
-\begin{theorem}[Optimality preservation under stale bids]\label{thm:worstcase}
-Let $\mathcal{U}^{\ast}$ be the optimal conflict-free utility and $\mathcal{U}_{TDMA}$ the utility at TDMA-CBBA termination.
-Under Theorem~\ref{thm:convergence}'s conditions with DMG scores,
+Then no belief ever expires, ghost pruning never fires from scheduling alone, and TDMA-CBBA reaches a conflict-free consensus within
 \begin{equation}
-    \mathcal{U}_{TDMA} \;\geq\; 0.5\,\mathcal{U}^{\ast}.
-    \label{eq:optimality-bound}
+    T_{TDMA} \;\leq\; T_{ideal} + N\tau K ,
+    \label{eq:noiseless-bound}
 \end{equation}
+where $T_{ideal}$ and $K$ are canonical CBBA's convergence time and round count on the same instance.
 \end{theorem}
+
 \begin{proof}
-\emph{(i) Staleness affects timing, not the score.}
-Bids depend only on positions, which evolve independently of the channel; a bid formed at $t - \Delta$ ($\Delta \leq 2N\tau$) is a valid DMG score for the configuration at which it was computed.
-\emph{(ii) Conflicts are transient, not absorbing.}
-Suppose stale information leads two agents $i, k$ to believe they win the same objective $o_j$, holding bids $\mathcal{B}_i(o_j)$ and $\mathcal{B}_k(o_j)$.
-Their next mutual ledger exchange---guaranteed within $2N\tau$ by Lemma~\ref{lem:frame}---causes both to adopt the larger bid and its owner as sole winner, and the outbid agent releases its assignment by rule (c) of Sec.~\ref{sec:method-auction}.
-Every conflict is thus resolved within one frame of its creation, and none persists at termination.
-\emph{(iii) The terminal state is a CBBA fixed point.}
-At consensus (guaranteed by Thm.~\ref{thm:convergence}), all agents agree on one winner per objective carrying the maximum bid seen anywhere in the network---precisely ideal CBBA's terminal condition restricted to the realized bid sequence.
-Because ideal CBBA achieves $\geq 0.5\,\mathcal{U}^{\ast}$ on DMG scores regardless of bid arrival order~\cite{choi2009}, and TDMA-CBBA realizes some permutation of a valid bid sequence, Eq.~\eqref{eq:optimality-bound} follows.
+With $q=1$ every gap equals exactly $N\tau$, so under \eqref{eq:noiseless-cond} beliefs are refreshed strictly before expiry; perceived swarms always contain all agents and pruning is inert.
+Each logical CBBA round requires one full frame of serialization, stretching round time from $\Delta t$ to $N\tau$; monotone merging (Lemma~\ref{lem:monotone}) ensures each delivered ledger makes irreversible progress toward the unique fixed point that ideal CBBA attains after $K$ rounds~\cite{choi2009}.
+Summing yields \eqref{eq:noiseless-bound}; conflict-freeness follows from bid--winner consistency.
 \end{proof}
 
-\emph{Remark.}
-Theorem~\ref{thm:worstcase} concerns the \emph{final} allocation; intermediate assignments may transiently fall below the bound while conflicts await resolution.
-Our experiments measure convergence and coverage rather than realized utility, so Eq.~\eqref{eq:optimality-bound} is validated structurally (conflict-freeness at consensus); adding a Hungarian-optimal comparator is identified as future work in Sec.~\ref{sec:discussion}.
+This is the precise, deterministic content of Contribution~1: it replaces the earlier claim of bounded delay under stochastic loss---which cannot hold since $(1-q)^k > 0$ for every $k$---with a guarantee that is unconditional exactly when loss is absent.
+
+\subsection{Guarantee II: Stochastic Regime (In Probability)}\label{sec:theory-stoch}
+
+Under genuine loss ($q < 1$), gaps are unbounded random variables (Eq.~\eqref{eq:gap-geom}); deterministic bounds are impossible, and over an unbounded horizon even rare expiry events occur almost surely.
+The correct statement is therefore \emph{episode-level, in probability}.
+
+\begin{definition}[Consensus episode]\label{def:episode}
+An episode is a contiguous interval of $F = \lceil K \rceil$ frames during which the swarm attempts consensus from an initial ledger state.
+It is \emph{expiry-free} if no link experiences $G_{ij} > T_{\mathrm{val}}$ anywhere in the interval.
+\end{definition}
+
+\begin{theorem}[Probabilistic episode consensus]\label{thm:probabilistic}
+Assume A1, slotted access, $0 < q < 1$, and $\Lambda \geq 0$ per Eq.~\eqref{eq:immunity}.
+Then TDMA-CBBA reaches a conflict-free consensus within $T_{ideal} + N\tau K$ with probability at least
+\begin{equation}
+    \Pr[\text{consensus in episode}] \;\geq\; \bigl(1 - \pi_{\mathrm{exp}}\bigr)^{\,n(n-1)\,F},
+    \qquad \pi_{\mathrm{exp}} = (1-q)^{\Lambda+1},
+    \label{eq:prob-bound}
+\end{equation}
+where $n = |\mathcal{D}|$ and $F$ is the episode length in frames (Def.~\ref{def:episode}).
+The bound is tight in the sense that a single expiry event on any link invalidates the precondition of Theorem~\ref{thm:noiseless} for that episode.
+\end{theorem}
+
+\begin{proof}
+Condition on the episode being expiry-free.
+There are $n(n{-}1)$ directed links, each observing at most $F$ refresh opportunities subject to independent loss; by Eq.~\eqref{eq:pi-exp} a given link stays expiry-free across the episode with probability $(1-\pi_{\mathrm{exp}})^{F}$, and links are independent, giving the exponent.
+Conditional on expiry-freedom every belief is refreshed before purging exactly as in Theorem~\ref{thm:noiseless}, so the same monotone-progress argument delivers consensus within the same time bound.
+Tightness follows from Sec.~\ref{sec:method-auction}(a): one purged belief removes its peer from the perceived swarm and activates ghost pruning for the objectives it held.
+\end{proof}
+
+Equation~\eqref{eq:prob-bound} is the probabilistic reliability boundary promised in the introduction: failure probability scales exponentially better in the immunity budget $\Lambda$ (i.e., in $T_{\mathrm{val}}/N\tau$), and exponentially worse in loss $(1-q)$, network size $n$, and episode length $F$.
+Because $\Lambda+1$ is an integer step function of $T_{\mathrm{val}}/N\tau$, crossing the threshold jumps $\pi_{\mathrm{exp}}$ from near zero to order unity---explaining why experiments exhibit a sharp empirical transition rather than soft degradation.
+
+\begin{remark}[Permanent consistency under stochastic loss]\label{rem:permanent}
+Definition~\ref{def:eventual} demands agreement for all $t \geq T_{\mathrm{cons}}$.
+Under $q<1$ with independent losses this cannot be guaranteed over an infinite horizon: arbitrarily long failure streaks occur almost surely, eventually triggering expiry and re-entering the dynamics.
+All stochastic guarantees here are therefore episode-granularity (Def.~\ref{def:episode}); permanent eventual consistency holds only in the noiseless regime of Theorem~\ref{thm:noiseless}.
+\end{remark}
+
+\subsection{Structural Impossibility Beyond the Threshold}\label{sec:phase-transition}
+
+\begin{theorem}[Impossibility for zero-immunity configurations]\label{thm:impossibility}
+If $p_{\mathrm{tx}} = p_{\mathrm{rx}} = 0$ and $N\tau > T_{\mathrm{val}}$ (i.e., $\Lambda < 0$), then for every agent $i$ and peer $j \neq i$ the belief about $j$ expires before $j$'s next transmission.
+Consequently each perceived swarm collapses to $\{i\}$ between receptions, ghost pruning erases all foreign winner entries every auction round, and no allocation survives a full frame: consensus (Def.~\ref{def:eventual}) is unreachable for any $N \geq 2$, deterministically, regardless of runtime.
+For $q < 1$ with $N\tau > T_{\mathrm{val}}$ the collapse occurs with probability tending to one within $O(1)$ frames.
+\end{theorem}
+
+\begin{proof}
+With $q = 1$, consecutive transmissions of $d_j$ are spaced exactly $N\tau > T_{\mathrm{val}}$; just before each transmission, every earlier packet from $d_j$ has aged past $T_{\mathrm{val}}$ and is purged by (C3).
+Hence $\mathcal{P}_i$ excludes $j$ whenever $d_i$ auctions, and rule (a) of Sec.~\ref{sec:method-auction} resets all winner entries belonging to $j$; symmetrically $j$ erases $i$'s wins.
+Allocations created in one frame are destroyed in the next, cycling forever.
+For $q < 1$: a gap $\leq T_{\mathrm{val}} < N\tau$ would require receiving two packets from $j$ within a single inter-transmission spacing---impossible under one-transmission-per-frame scheduling---so perceived swarms collapse identically, now with probability one over any window longer than a few frames.
+\end{proof}
+
+Together, Theorems~\ref{thm:noiseless}--\ref{thm:impossibility} locate the operating envelope:
+the ratio $T_{\mathrm{val}} / N\tau$ determines whether the swarm sits in the deterministic regime ($q{=}1$, $\Lambda \geq 0$), the probabilistic regime ($q{<}1$, $\Lambda \geq 0$, success w.p.\ per Eq.~\eqref{eq:prob-bound}), or the collapsed regime ($\Lambda < 0$).
+Section~\ref{sec:results} validates this three-regime picture with a sweep centered on $\Lambda = 0$.
+
+\subsection{Optimality Under Frozen Scores}\label{sec:theory-worst}
+
+A remaining question is whether stale bids degrade solution quality below CBBA's 50\% bound.
+Because agents move while auctions run, scores are time-varying, and we are careful about what can be claimed.
+
+\begin{proposition}[Optimality for frozen score profiles]\label{prop:optimality}
+Fix an auction episode and let $c^{\circ}_{ij}$ denote the score profile at episode start, held fixed (frozen) for the duration of the episode; let $\mathcal{U}^{\ast}_{\circ}$ be the optimal conflict-free utility under $c^{\circ}$ and $\mathcal{U}$ the realized utility at TDMA-CBBA termination within that episode, measured under the same frozen profile.
+If the episode is expiry-free (Def.~\ref{def:episode}) and scores satisfy DMG, then
+$\mathcal{U} \geq 0.5\,\mathcal{U}^{\ast}_{\circ}$.
+\end{proposition}
+
+\begin{proof}
+Conditional on expiry-freedom, Theorem~\ref{thm:noiseless} applies verbatim to the frozen-score instance: TDMA serializes rounds but preserves CBBA's update semantics over the realized bid sequence.
+Canonical CBBA attains at least half of optimal on any DMG instance regardless of bid arrival order~\cite{choi2009}; the terminal ledger state here is exactly such a fixed point, giving the bound.
+\end{proof}
+
+Two caveats delimit this result honestly.
+First, it is \emph{conditional}: Theorem~\ref{thm:probabilistic} bounds the probability of its precondition.
+Second, the \emph{tracking gap} between frozen and live scores grows with motion during the episode: since bids change by at most $v_{\max}\,\Delta_{\mathrm{age}}$ under age bound $\Delta_{\mathrm{age}}$ (here $\leq 2N\tau$ when $\Lambda \geq 0$), realized utility satisfies
+$|\mathcal{U}_{\mathrm{live}} - \mathcal{U}| \leq n\, v_{\max}\, 2N\tau$,
+so frozen-score optimality transfers to live utility up to this additive drift term.
+Empirical measurement of realized optimality against a Hungarian oracle~\cite{kuhn1955hungarian} remains open (Sec.~\ref{sec:discussion}); we therefore do not claim Eq.~\eqref{eq:optimality-bound}-style guarantees as an empirically validated headline.
 
 \subsection{Complexity Analysis}\label{sec:theory-complexity}
-Table~\ref{tab:complexity} compares per-agent costs, where $n = |\mathcal{D}|$, $m = |\mathcal{O}|$, $K$ auction rounds, and one TDMA frame consumes $\lceil N\tau / \Delta t \rceil$ ticks.
+Table~\ref{tab:complexity} compares per-agent costs ($n = |\mathcal{D}|$, $m = |\mathcal{O}|$); one frame consumes $\lceil N\tau / \Delta t \rceil$ ticks.
 
 \begin{table}[t]
 \centering
@@ -129,15 +184,15 @@ Auction compute / round & $O(m)$ & $O(m)$ \\
 Ledger merge per message & $O(m)$ & $O(m)$ \\
 Belief filtering per tick & --- & $O(n)$ \\
 Memory (ledger + mailbox) & $O(nm)^{\dagger}$ & $O(m + n)$ \\
-Messages sent / agent / round & $O(n)$ & $1$ \\
+Messages sent / agent / round & $O(n)$ & $(1-p_{\mathrm{tx}})$ \\
 Wall-clock per round & $O(\Delta t)$ & $O(N\tau)$ \\
+Update rate [pkts/s] & $1/\Delta t$ & $(1-p_{\mathrm{tx}})/(N\tau)$ \\
 \bottomrule
 \multicolumn{3}{l}{\footnotesize $^{\dagger}$Canonical CBBA stores full path bundles; ours stores flat ledgers.}\\
 \end{tabular}
 \end{table}
 
 Three observations follow.
-First, \emph{computational} cost per agent per round is unchanged by TDMA: auctions and merges touch only the $m$-dimensional ledger, and belief filtering is linear in mailbox size.
-Second, \emph{communication volume per agent drops from $O(n)$ point-to-point syncs to exactly one broadcast per round}, since a single packet carries the full ledger to all listeners simultaneously.
-Third, the price of slotted access is purely \emph{temporal}: wall-clock per round inflates from one tick to one frame $N\tau$---exactly the $N\tau K$ term of Theorem~\ref{thm:convergence}.
-Total network traffic per frame is $O(nm)$ bits in both cases; TDMA redistributes rather than amplifies traffic, trading latency for determinism and collision freedom.
+First, computational cost per round is unchanged by TDMA; belief filtering adds only $O(n)$ per tick.
+Second, communication volume per agent drops from $O(n)$ point-to-point syncs to at most one broadcast per frame.
+Third, the price of slotted access is purely temporal---wall-clock per round inflates to $N\tau$, exactly the additive term of Theorem~\ref{thm:noiseless}---and loss compounds it by reducing the update rate $(1-p_{\mathrm{tx}})/(N\tau)$, which is precisely what inflates gaps toward the expiry threshold of Definition~\ref{def:immunity}.

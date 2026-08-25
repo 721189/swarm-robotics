@@ -52,13 +52,19 @@ def calculate_sci(agents: List[BaseAgent], field_size: float = 100.0) -> float:
 def calculate_ce(agents: List[BaseAgent], objectives: list) -> float:
     """Coverage Efficiency.
 
-    Fraction of objectives that have an assigned (winning) alive agent.
+    Fraction of *distinct* objectives covered by an assigned (winning) alive
+    agent in the final allocation. Counting unique objectives (rather than the
+    number of assigned agents) avoids inflating coverage when several agents
+    claim the same objective.
     """
     if not objectives:
         return 0.0
 
-    assigned = sum(1 for a in agents if a.alive and a.assigned_task_id is not None)
-    return min(1.0, assigned / len(objectives))
+    assigned_obj_ids = set()
+    for a in agents:
+        if a.alive and a.assigned_task_id is not None:
+            assigned_obj_ids.add(a.assigned_task_id)
+    return min(1.0, len(assigned_obj_ids) / len(objectives))
 
 
 def calculate_pdr(packets_sent: int, packets_received: int,

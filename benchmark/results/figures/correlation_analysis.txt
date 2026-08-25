@@ -1,0 +1,24 @@
+=== CORRELATION ===
+
+Pearson:
+               swarm_size  packet_loss  slot_duration    mtc    sci    pdr
+swarm_size          1.000       -0.000            NaN  0.390  0.249  0.008
+packet_loss        -0.000        1.000            NaN  0.187 -0.324 -0.995
+slot_duration         NaN          NaN            NaN    NaN    NaN    NaN
+mtc                 0.390        0.187            NaN  1.000 -0.120 -0.182
+sci                 0.249       -0.324            NaN -0.120  1.000  0.320
+pdr                 0.008       -0.995            NaN -0.182  0.320  1.000
+
+Spearman:
+               swarm_size  packet_loss  slot_duration    mtc    sci    pdr
+swarm_size          1.000        0.000            NaN  0.165  0.238 -0.027
+packet_loss         0.000        1.000            NaN  0.238 -0.336 -0.987
+slot_duration         NaN          NaN            NaN    NaN    NaN    NaN
+mtc                 0.165        0.238            NaN  1.000 -0.120 -0.246
+sci                 0.238       -0.336            NaN -0.120  1.000  0.333
+pdr                -0.027       -0.987            NaN -0.246  0.333  1.000
+
+swarm_size vs mtc: r=0.390 p=0.0000
+swarm_size vs pdr: r=0.008 p=0.9256
+packet_loss vs mtc: r=0.187 p=0.0216
+packet_loss vs pdr: r=-0.995 p=0.0000

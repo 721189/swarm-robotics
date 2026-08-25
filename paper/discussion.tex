@@ -5,13 +5,18 @@ The synchronization--staleness phase transition (Thm.~\ref{thm:impossibility}) e
 Concretely, with $\tau = 50$\,ms slots and $T_{\mathrm{val}} = 2$\,s, our analysis caps a fully convergent TDMA-CBBA fleet at $N \leq 40$ drones; larger fleets require either faster slots, hierarchical scheduling (cluster-based TDMA), or validity horizons that scale as $T_{\mathrm{val}} = c\,N\tau$.
 We emphasize that this constraint is \emph{structural}, not statistical: beyond the threshold no amount of additional runtime recovers consensus, because ghost pruning deterministically erases allocations faster than gossip can re-establish them.
 
-Equally instructive is what does \emph{not} degrade: per-link PDR follows the analytic channel model independently of swarm logic (Table~\ref{tab:correlation}), and cohesion remains stable across radio conditions once assignments exist.
+Equally instructive is what does \emph{not} degrade: per-link PDR follows the analytic channel model independently of swarm logic (Sec.~\ref{sec:results-pdr}), and cohesion remains stable across radio conditions once assignments exist.
 The failure mode is therefore specific and localized---information age versus scheduling period---which is precisely what makes it fixable.
 
 \subsection{Relation to Prior Work}
 Our results refine, rather than contradict, CBBA theory~\cite{choi2009}: under bounded-delay communication whose bound respects belief expiry, all classical guarantees carry over (Thms.~\ref{thm:convergence}--\ref{thm:worstcase}).
 The phase transition complements asynchronous-CBBA analyses that assume infinite belief persistence; it shows those analyses do not survive the addition of standard forgetting mechanisms.
-D-TDMA connects to demand-assigned MAC protocols in tactical networks, but to our knowledge its coupling to auction convergence---and the doubled-horizon condition $2N\tau \leq T_{\mathrm{val}}$---is new.
+Within the demand-assigned MAC literature for tactical networks, our scheduler is closest in spirit to proximity-aware slot doubling; we treat that D-TDMA layer as an engineering extension (Sec.~\ref{sec:discussion-dtdma}) rather than as part of the core theoretical contribution.
+
+\subsection{D-TDMA as an Engineering Extension}\label{sec:discussion-dtdma}
+Our Dynamic TDMA scheduler lets an agent request a doubled transmission slot when it is near a threat or objective, prioritizing safety-critical updates.
+We deliberately exclude this layer from the theoretical claims of this paper: slot doubling alters the frame structure and the effective belief-age bound, so the convergence and optimality guarantees of Section~\ref{sec:theory} are proven for the baseline fixed-slot scheduler only.
+D-TDMA is implemented in the released \texttt{src/communication} package and can be enabled at runtime, but it was disabled in the benchmark matrix and its empirical characterization is left to future work.
 
 \subsection{Limitations}
 Several limitations bound the scope of our claims.
@@ -22,7 +27,7 @@ Objectives are stationary; dynamic task arrival would exercise bundle re-plannin
 \emph{(iii) Utility measurement.}
 Theorem~\ref{thm:worstcase} is validated structurally (conflict-freeness at consensus); we do not yet report realized utility against a Hungarian-optimal upper bound, so Eq.~\eqref{eq:optimality-bound}'s tightness in practice remains open.
 \emph{(iv) Homogeneity and attrition.}
-All agents share parameters, battery attrition is disabled in the benchmark corpus, so the fault-tolerance path of ghost pruning is exercised only through belief expiry rather than true agent loss.
+All agents share parameters, and battery attrition is disabled in the benchmark corpus, so the fault-tolerance path of ghost pruning is exercised only through belief expiry rather than true agent loss.
 \emph{(v) D-TDMA coverage.}
 The D-TDMA extension is specified and implemented but was disabled in the released matrix; its empirical characterization is future work.
 \emph{(vi) Loss asymmetry.}

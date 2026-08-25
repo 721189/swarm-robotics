@@ -1,0 +1,10 @@
+=== SURVIVAL ANALYSIS ===
+
+ideal_omni: conv=15/15 (100%) med=0.20s
+  survival@10s=0.000 @30s=0.000
+no_tdma_packet_loss: conv=60/60 (100%) med=0.40s
+  survival@10s=0.000 @30s=0.000
+tdma_clean: conv=13/15 (87%) med=12.30s
+  survival@10s=0.600 @30s=0.200
+tdma_packet_loss: conv=30/60 (50%) med=infs
+  survival@10s=0.717 @30s=0.567

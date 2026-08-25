@@ -52,6 +52,7 @@ Because merges are monotone in bid value and winner entries travel with bids, th
 \subsection{Phase II: Motion Control}
 Between auctions, drones execute a potential-field controller: attraction toward the assigned objective, repulsion from SAM threat zones via Eq.~\eqref{eq:threat-potential}, and Reynolds-style separation from neighbors within $4$\,m---where neighbors are drawn from the perceived swarm $\mathcal{P}_i$ under TDMA (strictly local information), or from ground truth under the open-channel baselines.
 This asymmetry is deliberate: it makes motion itself sensitive to communication quality, so that SCI responds to both physical flocking and informational coupling.
+Because this couples two distinct mechanisms (auction communication and motion-state estimation), we additionally run the allocation-only ablation of Sec.~\ref{sec:setup-ablation}, in which motion is disabled for all baselines, to isolate the contribution of the communication layer to the measured MTC differences.
 
 \subsection{Slotted Medium Access}\label{sec:method-slotted}
 Under TDMA, exactly one agent broadcasts per scheduling opportunity, eliminating intra-frame collisions by construction.
