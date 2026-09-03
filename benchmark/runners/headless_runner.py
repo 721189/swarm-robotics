@@ -46,11 +46,12 @@ from typing import Any, Dict, List, Optional
 # ---------------------------------------------------------------------------
 # Path bootstrap: make ``src`` and ``benchmark`` importable regardless of the
 # working directory or invocation style (``python -m`` vs ``python file.py``).
+# NOTE: only the repo root is added -- NEVER its parent -- so the repo's own
+# ``src/`` cannot be shadowed by a sibling checkout with an older codebase.
 # ---------------------------------------------------------------------------
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-for _p in (_PROJECT_ROOT, os.path.dirname(_PROJECT_ROOT)):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
 
 from src.core.simulation_engine import SwarmSimulation  # noqa: E402
 from src.config.config import (  # noqa: E402
@@ -79,12 +80,18 @@ TELEMETRY_MAX_AGE = 2.0          # Perceived-world timeout for ghost logic (s)
 STABILITY_HOLD = 5               # Consecutive identical assignment-signature frames
                                  # required to declare the swarm "stable".
 CONSENSUS_TIMEOUT = 500           # MTC cap when consensus never arrives
+VERIFY_HOLD = int(round(TELEMETRY_MAX_AGE / DT))  # Frames (>= T_val) that ledger
+                                 # agreement must PERSIST to count as *verified*
+                                 # consensus, not merely first-passage agreement.
 
 RESULTS_HEADERS = [
     "baseline", "use_tdma", "swarm_size", "packet_loss", "num_objectives",
     "num_threats", "slot_duration", "trial", "sci", "ce", "pdr", "mtc",
-    "converged", "frames_to_consensus", "frames_to_stability",
-    "packets_sent", "packets_received", "packets_offered", "total_frames",
+    "converged", "frames_to_consensus", "consensus_verified",
+    "consensus_regressions", "frames_to_stability",
+    "packets_sent", "packets_received", "packets_offered",
+    "tx_opportunities", "p_tx_success", "p_rx_given_tx", "p_e2e",
+    "total_frames",
     "timestamp",
 ]
 def run_single_trial(
@@ -169,9 +176,12 @@ def run_single_trial(
         # --- Metrics tracking -----------------------------------------------------
     frames_to_consensus: Optional[int] = None
     frames_to_stability: Optional[int] = None
+    consensus_regressions = 0  # agreement broken after first passage (expiry events)
+    agree_streak = 0
     packets_sent = 0
     packets_received = 0
     packets_offered = 0
+    tx_opportunities = 0  # scheduled speaker slots with an alive speaker (TDMA)
     # Rolling window of the per-frame assignment signature, used to detect
     # task-assignment stability (agents stop flip-flopping between targets).
     signature_history: List[tuple] = []
@@ -206,43 +216,70 @@ def run_single_trial(
 
     # --- Run loop --------------------------------------------------------------
     for frame_idx in range(max_frames):
-        broadcasts: List[tuple] = []
-
-        # 1. Radio step: decide who gets to speak this frame.
+        # 1. Radio step: advance the TDMA clock first; if there is no scheduler
+        #    (open-channel baselines), every alive drone is a transmitter.
         if tdma is not None:
-            speaker_id = tdma.get_current_speaker()
-            if speaker_id is not None and speaker_id < len(sim.agents):
+            slot_events = tdma.advance(DT)
+
+            for event in slot_events:
+                speaker_id = event.speaker_id
+
+                if speaker_id >= len(sim.agents):
+                    continue
+
                 speaker = sim.agents[speaker_id]
-                if speaker.alive:
-                    # Broadcast-side loss: the whole transmission is lost.
-                    if trial_rng.random() <= packet_loss:
-                        if verbose:
-                            print(f"   [frame {frame_idx}] packet LOST at sender {speaker_id}")
-                    else:
-                        broadcasts.append(
-                            (speaker_id, speaker.prepare_broadcast(tdma.current_time))
-                        )
+
+                if not speaker.alive:
+                    continue
+
+                # Every scheduled speaker -> receiver pair is an offered
+                # end-to-end link opportunity, including TX-side failure.
+                receivers = [
+                    a for a in sim.agents
+                    if a.alive and a.agent_id != speaker_id
+                ]
+
+                packets_offered += len(receivers)
+                tx_opportunities += 1
+
+                # TX-stage failure affects the entire broadcast.
+                if trial_rng.random() <= packet_loss:
+                    if verbose:
+                        print(f"   [frame {frame_idx}] packet LOST at sender {speaker_id}")
+                    continue
+
+                packets_sent += 1
+
+                packet = speaker.prepare_broadcast(event.start_time)
+
+                for agent in receivers:
+                    if trial_rng.random() <= packet_loss * 0.5:
+                        continue
+
+                    agent.receive_broadcast(speaker_id, packet)
+                    packets_received += 1
         else:
             # Baseline / open channel: every alive drone broadcasts every frame.
             for agent in sim.agents:
-                if agent.alive and trial_rng.random() > packet_loss:
-                    broadcasts.append(
-                        (agent.agent_id, agent.prepare_broadcast(float(frame_idx) * DT))
-                    )
-
-        packets_sent += len(broadcasts)
-
-                # 2. Reception (per-receiver channel loss at half the nominal rate).
-        for sender_id, packet in broadcasts:
-            for agent in sim.agents:
-                if agent.agent_id == sender_id or not agent.alive:
+                if not agent.alive:
                     continue
-                # Every eligible link is an "offered" delivery attempt.
-                packets_offered += 1
-                if trial_rng.random() <= packet_loss * 0.5:
-                    continue  # packet dropped in transit
-                agent.receive_broadcast(sender_id, packet)
-                packets_received += 1
+                receivers = [
+                    a for a in sim.agents
+                    if a.alive and a.agent_id != agent.agent_id
+                ]
+                packets_offered += len(receivers)
+                tx_opportunities += 1
+                if trial_rng.random() <= packet_loss:
+                    continue
+                packets_sent += 1
+                packet = agent.prepare_broadcast(float(frame_idx) * DT)
+                for r in receivers:
+                    if trial_rng.random() <= packet_loss * 0.5:
+                        continue
+                    r.receive_broadcast(agent.agent_id, packet)
+                    packets_received += 1
+
+        # 2. (Reception handled per-link inside the radio phase above.)
 
         # 3. Agent decisions/state updates under their (lossy) perceived world.
         sim_time = tdma.current_time if tdma is not None else float(frame_idx) * DT
@@ -251,16 +288,21 @@ def run_single_trial(
                 perceived = agent.get_perceived_world(sim_time, max_age=TELEMETRY_MAX_AGE)
                 agent.step(dt=DT, perceived_swarm=perceived, simulation=sim)
 
-        # 4. Advance radio clock.
-        if tdma is not None:
-            tdma.update(dt=DT)
+        # 4. Radio clock was already advanced by advance(DT) in step 1.
 
-                        # --- Convergence / stability checks -------------------------------------
+        # --- Convergence / stability checks -------------------------------------
         alive = [a for a in sim.agents if a.alive]
 
-        # Consensus: all alive drones share one consistent CBBA winner ledger.
-        if frames_to_consensus is None and _consensus_reached():
+        # Consensus tracking distinguishes TWO definitions:
+        #   first-passage: the FIRST frame at which all alive ledgers agree
+        #   verified     : agreement then PERSISTS for VERIFY_HOLD consecutive
+        #                  frames (>= T_val), i.e. belief expiry does not break it.
+        agree_now = _consensus_reached()
+        if frames_to_consensus is None and agree_now:
             frames_to_consensus = frame_idx
+        elif frames_to_consensus is not None and not agree_now:
+            consensus_regressions += 1
+        agree_streak = agree_streak + 1 if agree_now else 0
 
         # Stability: assignment unchanged for a window of STABILITY_HOLD frames.
         if frames_to_stability is None and len(alive) > 0:
@@ -269,7 +311,12 @@ def run_single_trial(
                     len(set(signature_history[-STABILITY_HOLD:])) == 1:
                 frames_to_stability = frame_idx
 
-        if frames_to_consensus is not None and frames_to_stability is not None:
+        consensus_verified = (
+            frames_to_consensus is not None
+            and frames_to_stability is not None
+            and agree_streak >= VERIFY_HOLD
+        )
+        if consensus_verified:
             break
 
     # --- Calculate the "Big Four" metrics ---------------------------------------
@@ -277,6 +324,17 @@ def run_single_trial(
     ce = calculate_ce(sim.agents, sim.objectives)
     pdr = calculate_pdr(packets_sent, packets_received, packets_offered)
     mtc = calculate_mtc(frames_to_consensus, dt=DT, max_frames=max_frames)
+
+    # Communication reliability decomposition (Sec. Radio model):
+    #   p_tx_success : P(packet leaves the sender | scheduled opportunity)
+    #   pdr          : end-to-end link success = #received / #offered. Offered
+    #                  counts EVERY scheduled sender->receiver pair, including
+    #                  TX-failed slots, so pdr == q = (1-p_tx)(1-p_rx).
+    #   p_rx_given_tx: empirical decode rate conditional on a surviving TX.
+    verified = (frames_to_consensus is not None and agree_streak >= VERIFY_HOLD)
+    p_tx_success = packets_sent / tx_opportunities if tx_opportunities > 0 else 0.0
+    p_rx_cond = pdr / p_tx_success if p_tx_success > 0 else 0.0
+    p_e2e = pdr
 
     result = {
         "baseline": baseline,
@@ -293,10 +351,16 @@ def run_single_trial(
         "mtc": round(mtc, 6),
         "converged": frames_to_consensus is not None,
         "frames_to_consensus": frames_to_consensus if frames_to_consensus is not None else max_frames,
+        "consensus_verified": int(verified),
+        "consensus_regressions": consensus_regressions,
         "frames_to_stability": frames_to_stability if frames_to_stability is not None else max_frames,
         "packets_sent": packets_sent,
         "packets_received": packets_received,
         "packets_offered": packets_offered,
+        "tx_opportunities": tx_opportunities,
+        "p_tx_success": round(p_tx_success, 6),
+        "p_rx_given_tx": round(p_rx_cond, 6),
+        "p_e2e": round(p_e2e, 6),
         "total_frames": frame_idx + 1,
         "timestamp": datetime.now().isoformat(timespec="seconds"),
     }

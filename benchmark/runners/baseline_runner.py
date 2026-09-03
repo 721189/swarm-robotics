@@ -22,9 +22,11 @@ import sys
 from typing import Any, Dict, List, Optional
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-for _p in (_PROJECT_ROOT, os.path.dirname(_PROJECT_ROOT)):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
+# Only the repo root goes onto sys.path (never its parent), so the repo's own
+# ``src/`` cannot be shadowed by a sibling checkout with an older codebase.
+
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
 
 import argparse  # noqa: E402
 
