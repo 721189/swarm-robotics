@@ -2,7 +2,7 @@
 
 This section develops the paper's formal guarantees under a communication model that is honest about stochastic loss.
 Section~\ref{sec:theory-age} defines the \emph{belief-age process}---the exact quantity whose interplay with scheduling produces both the guarantees and the failure mode.
-Sections~\ref{sec:theory-noiseless}--\ref{sec:theory-stoch} then state what does and does not survive: a deterministic convergence guarantee in the noiseless regime, a probabilistic guarantee under stochastic loss, and a structural impossibility beyond the staleness threshold.
+Sections~\ref{sec:theory-noiseless}--\ref{sec:theory-stoch} then state what does and does not survive: consensus definitions made precise, a deterministic guarantee in the noiseless regime, and an exact stochastic reliability bound that invokes no independence assumptions between overlapping loss windows.
 Section~\ref{sec:theory-worst} treats optimality under explicitly frozen scores, and Section~\ref{sec:theory-complexity} analyzes complexity.
 
 Throughout, $q = (1-p_{\mathrm{tx}})(1-p_{\mathrm{rx}})$ denotes the per-frame end-to-end delivery success probability on a link, and all probabilistic statements are with respect to the independent loss process of Sec.~\ref{sec:comm-model}.
@@ -25,13 +25,16 @@ A belief about $d_j$ held by $d_i$ expires exactly when the current gap exceeds 
 The geometry of Eq.~\eqref{eq:gap-geom} is captured by a single integer.
 
 \begin{definition}[Loss-immunity budget]\label{def:immunity}
-The \emph{loss-immunity budget} of the configuration $(N, \tau, T_{\mathrm{val}})$ is
-\begin{equation}
-    \Lambda \;=\; \left\lceil \frac{T_{\mathrm{val}}}{N\tau} \right\rceil - 1 \;\geq\; 0,
-    \label{eq:immunity}
-\end{equation}
-the maximum number of consecutively lost frames a link can absorb while the belief remains valid up to the moment of refresh.
-Equivalently, expiry occurs on a link iff its gap spans $\Lambda + 2$ or more frame periods.
+The \emph{loss-immunity budget} of the configuration $(N,\,\tau,\,T_{\mathrm{val}})$ is
+\[
+\Lambda =
+\left\lfloor \frac{T_{\mathrm{val}}}{N\tau}\right\rfloor-1.
+\]
+Configurations with $\Lambda\geq0$ admit at least one valid inter-transmission interval, whereas $\Lambda=-1$ corresponds to
+\[
+N\tau>T_{\mathrm{val}},
+\]
+for which even a successful packet cannot remain valid until the next scheduled transmission opportunity from the same peer. Equivalently, $\Lambda$ is the maximum number of consecutive frame losses a link can absorb while every belief remains valid until refreshed.
 \end{definition}
 
 Two per-link quantities follow immediately from Definitions~\ref{def:gap}--\ref{def:immunity}:
@@ -43,134 +46,197 @@ Two per-link quantities follow immediately from Definitions~\ref{def:gap}--\ref{
     \label{eq:pi-exp}
 \end{equation}
 where the second is equivalent to $q \geq N\tau / T_{\mathrm{val}}$.
-The budget $\Lambda$ cleanly unifies the regimes discussed in this paper:
-$\Lambda = 0$ (i.e., $N\tau \leq T_{\mathrm{val}} < 2N\tau$) means a single lost frame already triggers expiry;
-larger $\Lambda$ buys robustness linearly in $T_{\mathrm{val}}$;
-and the D-TDMA extension of Sec.~\ref{sec:dtdma}, by stretching granted slots to $2\tau$, at most doubles the effective frame period and therefore \emph{halves} the immunity available near threshold.
+The D-TDMA extension of Sec.~\ref{sec:dtdma}, by stretching granted slots to $2\tau$, at most doubles the effective frame period and therefore \emph{halves} the immunity available near threshold.
 
-This decomposition also separates the two loss mechanisms functionally:
-$p_{\mathrm{tx}}$ enters only through the update rate $u = 1-p_{\mathrm{tx}}$ (it suppresses whole transmissions, inflating gaps toward the mean condition), whereas $p_{\mathrm{rx}}$ acts as pure per-link erasure inside $q$.
-Empirically this split is exact in our simulator (Sec.~\ref{sec:results}): measured per-link PDR equals $r = 1 - p_{\mathrm{rx}}$ conditioned on transmission, and measured successful-update frequency equals $u$.
+This decomposition separates the two loss mechanisms functionally:
+$p_{\mathrm{tx}}$ enters only through the update rate $u = 1-p_{\mathrm{tx}}$ (it slows refresh),
+while $p_{\mathrm{rx}}$ enters only through $r = 1-p_{\mathrm{rx}}$ (it corrupts otherwise timely refreshes).
+
+\subsection{Consensus Definitions and the Noiseless Regime}\label{sec:theory-noiseless}
+
+A recurring source of confusion in the empirical literature is conflating two distinct events; we define both precisely and never mix them.
+
+\begin{definition}[First-passage agreement]\label{def:firstpassage}
+$T_{\mathrm{fp}} = \inf\{ t : \mathcal{L}_i(t) = \mathcal{L}_j(t) \;\forall i,j \}$ is the first time all live ledgers coincide.
+It is a snapshot property: it says nothing about any later instant.
+\end{definition}
+
+\begin{definition}[Verified consensus]\label{def:verified}
+The system achieves \emph{verified consensus} if agreement holds continuously over an interval of length $T_{\mathrm{val}}$: there exists $t_0$ such that $\mathcal{L}_i(t) = \mathcal{L}_j(t)\;\forall i,j$ for all $t \in [t_0,\, t_0 + T_{\mathrm{val}}]$.
+This is the operational guarantee a deployed swarm needs---assignments derived from ledgers that stay agreed for one validity horizon cannot silently diverge mid-execution.
+An \emph{expiry-free episode} is one in which no belief expires before first-passage agreement.
+\end{definition}
+
+Our benchmark records $T_{\mathrm{fp}}$, a binary indicator of verified consensus (agreement persisting for $T_{\mathrm{val}}/\Delta t$ frames after first passage), and the count of \emph{regressions}: post-passage disagreement events caused by belief expiry.
+The distinction is decisive for interpreting Sec.~\ref{sec:results}: a swarm may agree momentarily ``in passing'' while being structurally incapable of \emph{holding} agreement.
 
 \begin{lemma}[Monotone ledger merging]\label{lem:monotone}
-For every objective $o_j$ and agent $i$, the stored bid $\mathcal{B}_i^{(t)}(o_j)$ is non-decreasing in $t$ except when reset by ghost pruning, and merging never decreases either party's bid.
-Moreover $\mathcal{W}_i(o_j)$ always names the agent holding the bid $\mathcal{B}_i(o_j)$.
+The gossip update rule of Algorithm~\ref{alg:tdmacbba} is monotone in the following sense. For each objective $o_j$, the bid entry stored by agent $d_i$ is nondecreasing over time and equals the maximum of all incoming bids for $o_j$ that $d_i$ has decoded, provided no stored entry is pruned by belief expiry:
+\begin{equation}
+    b^{(i)}_j(t{+}) \;=\; \max\Bigl\{ b^{(i)}_j(t),\; \max_{k:\,\mathrm{msg}(k,j)\in \mathcal{M}_i(t)} b_{kj}\Bigr\},
+    \label{eq:monotone-merge}
+\end{equation}
+where $\mathcal{M}_i(t)$ is $d_i$'s mailbox of non-expired messages. Consequently, whenever no expiry fires, every ledger entry is a running maximum of the delivered message stream, and entry values never decrease.
 \end{lemma}
 
 \begin{proof}
-Both the reception merge (adopt only strictly greater bids) and the self-bid update (claim only when $c_{ij} > \mathcal{B}_i(o_j)$) write values strictly greater than the stored value; winner entries are copied together with bids from the same packet, so bid--winner pairs remain consistent.
-Ghost pruning resets a bid to $0$ only when its believed winner has left the perceived swarm---which under expiry-free operation cannot be caused by scheduling alone, only by genuine attrition.
+The receive handler adopts a sender's bid if and only if it is strictly larger than the local entry, and otherwise leaves the local entry unchanged (Sec.~\ref{sec:method-belief}); winner indices travel with the adopted bid, so the stored pair $(\mathrm{winner}, \mathrm{bid})$ changes only out of a strictly smaller stored bid. Because scores are constant throughout the episode (Sec.~\ref{sec:theory-worst}), a larger received value can be overwritten only upward, never downward, whenever no pruning event removes it. Repeated application over the sequence of decoded messages yields exactly the running maximum of Eq.~\eqref{eq:monotone-merge}.
 \end{proof}
 
-
-\subsection{Guarantee I: Noiseless Regime (Deterministic)}\label{sec:theory-noiseless}
-
-We first state what holds exactly, without probabilistic qualification.
-
-\begin{theorem}[Noiseless convergence]\label{thm:noiseless}
-Assume DMG scores (A1), slotted access with $p_{\mathrm{tx}} = p_{\mathrm{rx}} = 0$ (hence $q = 1$, $G_{ij} = N\tau$ deterministically), and the freshness condition
-\begin{equation}
-    N\tau \;\leq\; T_{\mathrm{val}} .
-    \label{eq:noiseless-cond}
-\end{equation}
-Then no belief ever expires, ghost pruning never fires from scheduling alone, and TDMA-CBBA reaches a conflict-free consensus within
-\begin{equation}
-    T_{TDMA} \;\leq\; T_{ideal} + N\tau K ,
-    \label{eq:noiseless-bound}
-\end{equation}
-where $T_{ideal}$ and $K$ are canonical CBBA's convergence time and round count on the same instance.
+\begin{theorem}[Noiseless scheduling regimes]\label{thm:noiseless}
+Suppose $p_{\mathrm{tx}} = p_{\mathrm{rx}} = 0$ (lossless TDMA), so every belief refreshes exactly once per frame period $N\tau$, and let scores be frozen for the episode (Sec.~\ref{sec:theory-worst}). Then:
+\begin{enumerate}
+    \item[(i)] \textbf{(Feasible regime, $\Lambda \geq 0$.)}
+    If $N\tau \leq T_{\mathrm{val}}$, TDMA's round-robin gossip delivers, per round, exactly ideal CBBA's message set up to intra-round ordering; ledgers are monotone because pruning never fires (no packet age exceeds $N\tau \leq T_{\mathrm{val}}$).
+    First-passage agreement therefore occurs within
+    \begin{equation}
+        T_{\mathrm{fp}} \;\leq\; T_{\mathrm{ideal}} + K \cdot N\tau,
+        \label{eq:ttdma-bound}
+    \end{equation}
+    where $K$ is the number of gossip rounds ideal CBBA requires, and the agreement persists: verified consensus holds with probability one.
+    \item[(ii)] \textbf{(Collapsed regime, $\Lambda = -1$.)}
+    If $N\tau > T_{\mathrm{val}}$, every refresh arrives already expired: at decode time the sender entry is older than $T_{\mathrm{val}}$, so ghost pruning removes its wins before they influence the ledger. First-passage agreement may still occur transiently---and empirically does (Sec.~\ref{sec:results})---but it cannot persist: between two consecutive refreshes of any peer, that peer's entries expire and are pruned, forcing disagreement within every frame period. Verified consensus therefore has probability zero.
+\end{enumerate}
 \end{theorem}
 
 \begin{proof}
-With $q=1$ every gap equals exactly $N\tau$, so under \eqref{eq:noiseless-cond} beliefs are refreshed strictly before expiry; perceived swarms always contain all agents and pruning is inert.
-Each logical CBBA round requires one full frame of serialization, stretching round time from $\Delta t$ to $N\tau$; monotone merging (Lemma~\ref{lem:monotone}) ensures each delivered ledger makes irreversible progress toward the unique fixed point that ideal CBBA attains after $K$ rounds~\cite{choi2009}.
-Summing yields \eqref{eq:noiseless-bound}; conflict-freeness follows from bid--winner consistency.
+(i) Under lossless TDMA each decoded packet has age at most $N\tau \leq T_{\mathrm{val}}$, so pruning never fires; each agent's ledger then evolves by the monotone merge of Lemma~\ref{lem:monotone} under a fixed serialization of exactly the all-to-all message pattern per round. Convergence follows from the standard monotone-auction argument~\cite{choi2009}; each serialized round can lag the ideal round by at most one frame period $N\tau$, giving Eq.~\eqref{eq:ttdma-bound}, and with no expiry the terminal agreement never breaks, establishing verified consensus.
+(ii) Consider any pair $(i,j)$ and two consecutive receptions by $i$ of packets from $j$, separated by exactly $N\tau > T_{\mathrm{val}}$. At every instant strictly between them, $i$'s belief about $j$ exceeds age $T_{\mathrm{val}}$, so ghost pruning removes $j$'s winning entries from $i$'s ledger. For global agreement to persist across this interval, $j$'s entries would have to be simultaneously present in $i$'s ledger---a contradiction unless they are absent everywhere, which conflicts with agreement requiring at least one real winner whenever $m \geq 1$. Hence agreement breaks within every frame period, and no interval of length $T_{\mathrm{val}}$ sustains it.
 \end{proof}
-
-This is the precise, deterministic content of Contribution~1: it replaces the earlier claim of bounded delay under stochastic loss---which cannot hold since $(1-q)^k > 0$ for every $k$---with a guarantee that is unconditional exactly when loss is absent.
-
-\subsection{Guarantee II: Stochastic Regime (In Probability)}\label{sec:theory-stoch}
-
-Under genuine loss ($q < 1$), gaps are unbounded random variables (Eq.~\eqref{eq:gap-geom}); deterministic bounds are impossible, and over an unbounded horizon even rare expiry events occur almost surely.
-The correct statement is therefore \emph{episode-level, in probability}.
-
-\begin{definition}[Consensus episode]\label{def:episode}
-An episode is a contiguous interval of $F = \lceil K \rceil$ frames during which the swarm attempts consensus from an initial ledger state.
-It is \emph{expiry-free} if no link experiences $G_{ij} > T_{\mathrm{val}}$ anywhere in the interval.
-\end{definition}
-
-\begin{theorem}[Probabilistic episode consensus]\label{thm:probabilistic}
-Assume A1, slotted access, $0 < q < 1$, and $\Lambda \geq 0$ per Eq.~\eqref{eq:immunity}.
-Then TDMA-CBBA reaches a conflict-free consensus within $T_{ideal} + N\tau K$ with probability at least
-\begin{equation}
-    \Pr[\text{consensus in episode}] \;\geq\; \bigl(1 - \pi_{\mathrm{exp}}\bigr)^{\,n(n-1)\,F},
-    \qquad \pi_{\mathrm{exp}} = (1-q)^{\Lambda+1},
-    \label{eq:prob-bound}
-\end{equation}
-where $n = |\mathcal{D}|$ and $F$ is the episode length in frames (Def.~\ref{def:episode}).
-The bound is tight in the sense that a single expiry event on any link invalidates the precondition of Theorem~\ref{thm:noiseless} for that episode.
-\end{theorem}
-
-\begin{proof}
-Condition on the episode being expiry-free.
-There are $n(n{-}1)$ directed links, each observing at most $F$ refresh opportunities subject to independent loss; by Eq.~\eqref{eq:pi-exp} a given link stays expiry-free across the episode with probability $(1-\pi_{\mathrm{exp}})^{F}$, and links are independent, giving the exponent.
-Conditional on expiry-freedom every belief is refreshed before purging exactly as in Theorem~\ref{thm:noiseless}, so the same monotone-progress argument delivers consensus within the same time bound.
-Tightness follows from Sec.~\ref{sec:method-auction}(a): one purged belief removes its peer from the perceived swarm and activates ghost pruning for the objectives it held.
-\end{proof}
-
-Equation~\eqref{eq:prob-bound} is the probabilistic reliability boundary promised in the introduction: failure probability scales exponentially better in the immunity budget $\Lambda$ (i.e., in $T_{\mathrm{val}}/N\tau$), and exponentially worse in loss $(1-q)$, network size $n$, and episode length $F$.
-Because $\Lambda+1$ is an integer step function of $T_{\mathrm{val}}/N\tau$, crossing the threshold jumps $\pi_{\mathrm{exp}}$ from near zero to order unity---explaining why experiments exhibit a sharp empirical transition rather than soft degradation.
-
-\begin{remark}[Permanent consistency under stochastic loss]\label{rem:permanent}
-Definition~\ref{def:eventual} demands agreement for all $t \geq T_{\mathrm{cons}}$.
-Under $q<1$ with independent losses this cannot be guaranteed over an infinite horizon: arbitrarily long failure streaks occur almost surely, eventually triggering expiry and re-entering the dynamics.
-All stochastic guarantees here are therefore episode-granularity (Def.~\ref{def:episode}); permanent eventual consistency holds only in the noiseless regime of Theorem~\ref{thm:noiseless}.
-\end{remark}
 
 \subsection{Structural Impossibility Beyond the Threshold}\label{sec:phase-transition}
 
-\begin{theorem}[Impossibility for zero-immunity configurations]\label{thm:impossibility}
-If $p_{\mathrm{tx}} = p_{\mathrm{rx}} = 0$ and $N\tau > T_{\mathrm{val}}$ (i.e., $\Lambda < 0$), then for every agent $i$ and peer $j \neq i$ the belief about $j$ expires before $j$'s next transmission.
-Consequently each perceived swarm collapses to $\{i\}$ between receptions, ghost pruning erases all foreign winner entries every auction round, and no allocation survives a full frame: consensus (Def.~\ref{def:eventual}) is unreachable for any $N \geq 2$, deterministically, regardless of runtime.
-For $q < 1$ with $N\tau > T_{\mathrm{val}}$ the collapse occurs with probability tending to one within $O(1)$ frames.
+\begin{theorem}[Structural loss of persistent global consensus]
+\label{thm:impossibility}
+Consider the communication model of Sec.~\ref{sec:comm-model}
+with exactly one transmission opportunity per agent per TDMA frame,
+and the belief-expiry and ghost-pruning rules of
+Sec.~\ref{sec:method-auction}. If
+\[
+N\tau>T_{\mathrm{val}},
+\]
+then every received message from a peer $d_j$ necessarily expires
+before the next scheduled transmission opportunity of $d_j$.
+
+Consequently, under the paper's ghost-pruning rule, a peer cannot
+remain continuously present in another agent's perceived swarm`.
+Therefore the persistent global-consensus condition of
+Def.~\ref{def:eventual} cannot be maintained for the full swarm
+when $N\geq2$.
+
+This structural result is independent of packet-loss probability:
+packet loss can only increase belief age and cannot reduce the
+minimum inter-transmission interval below $N\tau$.
 \end{theorem}
 
 \begin{proof}
-With $q = 1$, consecutive transmissions of $d_j$ are spaced exactly $N\tau > T_{\mathrm{val}}$; just before each transmission, every earlier packet from $d_j$ has aged past $T_{\mathrm{val}}$ and is purged by (C3).
-Hence $\mathcal{P}_i$ excludes $j$ whenever $d_i$ auctions, and rule (a) of Sec.~\ref{sec:method-auction} resets all winner entries belonging to $j$; symmetrically $j$ erases $i$'s wins.
-Allocations created in one frame are destroyed in the next, cycling forever.
-For $q < 1$: a gap $\leq T_{\mathrm{val}} < N\tau$ would require receiving two packets from $j$ within a single inter-transmission spacing---impossible under one-transmission-per-frame scheduling---so perceived swarms collapse identically, now with probability one over any window longer than a few frames.
+Every peer transmits at most once per TDMA frame, so consecutive
+transmission opportunities from $d_j$ are separated by exactly
+$N\tau$. Since
+\[
+N\tau>T_{\mathrm{val}},
+\]
+a message received from $d_j$ becomes older than
+$T_{\mathrm{val}}$ before the next possible transmission from
+$d_j$.
+
+By (C3),the message is therefore removed from the receiver's
+perceived swarm before it can be refreshed. The ghost-pruning rule
+then removes ledger entries whose believed winner is that peer.Hence a peer cannot remain persistently represented in every
+receiver's ledger, contradicting the persistent equality required
+by Def.~\ref{def:eventual}. Packet loss cannot improve this condition,
+because a failed transmission only increases the inter-success gap.
 \end{proof}
 
-Together, Theorems~\ref{thm:noiseless}--\ref{thm:impossibility} locate the operating envelope:
-the ratio $T_{\mathrm{val}} / N\tau$ determines whether the swarm sits in the deterministic regime ($q{=}1$, $\Lambda \geq 0$), the probabilistic regime ($q{<}1$, $\Lambda \geq 0$, success w.p.\ per Eq.~\eqref{eq:prob-bound}), or the collapsed regime ($\Lambda < 0$).
-Section~\ref{sec:results} validates this three-regime picture with a sweep centered on $\Lambda = 0$.
+\subsection{Stochastic Loss: Exact Reliability Guarantees}\label{sec:theory-stoch}
 
-\subsection{Optimality Under Frozen Scores}\label{sec:theory-worst}
+With stochastic loss, refreshes arrive with geometrically distributed gaps (Def.~\ref{def:gap}) and expiry becomes a random event. Two errors must be avoided: treating overlapping loss windows as independent (they share samples), and claiming deterministic delay bounds that stochastic failure runs violate with nonzero probability. We make neither: the single-link probability below is \emph{exact}, and the network-level statement uses only the union bound, hence remains valid under arbitrary correlation in the loss process.
 
-A remaining question is whether stale bids degrade solution quality below CBBA's 50\% bound.
-Because agents move while auctions run, scores are time-varying, and we are careful about what can be claimed.
-
-\begin{proposition}[Optimality for frozen score profiles]\label{prop:optimality}
-Fix an auction episode and let $c^{\circ}_{ij}$ denote the score profile at episode start, held fixed (frozen) for the duration of the episode; let $\mathcal{U}^{\ast}_{\circ}$ be the optimal conflict-free utility under $c^{\circ}$ and $\mathcal{U}$ the realized utility at TDMA-CBBA termination within that episode, measured under the same frozen profile.
-If the episode is expiry-free (Def.~\ref{def:episode}) and scores satisfy DMG, then
+\begin{lemma}[Exact single-link non-expiry probability]\label{lem:run}
+Fix a link and an audit window of $F$ refresh opportunities (frames). Let $s = \Lambda + 2$ denote the gap length (in frame periods) that triggers expiry; if $\Lambda = -1$ set $s = 1$ (every missed refresh expires the belief). With per-frame success $q$, the probability that \emph{no} expiry-causing failure run occurs in the window is
 \begin{equation}
-    \mathcal{U} \geq 0.5\,\mathcal{U}^{\ast}_{\circ}.
-    \label{eq:optimality-bound}
+    P_{\mathrm{clean}}(F, s, q) \;=\; \sum_{k=0}^{s-1} f_F(k),
+    \label{eq:run-recursion}
 \end{equation}
-\end{proposition}
+where $f_0(0) = 1$, $f_0(k) = 0$ for $k > 0$, and
+$f_{t+1}(0) = q \sum_{k=0}^{s-1} f_t(k)$,
+$f_{t+1}(k{+}1) = (1-q)\, f_t(k)$ for $0 \leq k < s{-}1$.
+This recursion counts failure runs exactly.
+\end{lemma}
+>>>>>>> 99b7624 (Steps 1-2: stochastic theorem becomes reliability-only bound; add structural impossibility theorem (Thm. impossibility); fix loss-immunity definition semantics (floor, Lambda=-1 iff N*tau>T_val))
 
 \begin{proof}
-Conditional on expiry-freedom, Theorem~\ref{thm:noiseless} applies verbatim to the frozen-score instance: TDMA serializes rounds but preserves CBBA's update semantics over the realized bid sequence.
-Canonical CBBA attains at least half of optimal on any DMG instance regardless of bid arrival order~\cite{choi2009}; the terminal ledger state here is exactly such a fixed point, giving the bound.
+$f_t(k)$ is the probability that after $t$ attempts no run of $s$ consecutive failures has occurred and the trailing failure streak has length exactly $k < s$. A success resets the streak to zero (weight $q$, summed over all safe states); a failure extends it by one (weight $1-q$); reaching streak length $s$ leaves the safe state space and corresponds precisely to an expiry. Summing the mass over safe terminal states yields Eq.~\eqref{eq:run-recursion}.
 \end{proof}
 
-Two caveats delimit this result honestly.
-First, it is \emph{conditional}: Theorem~\ref{thm:probabilistic} bounds the probability of its precondition.
-Second, the \emph{tracking gap} between frozen and live scores grows with motion during the episode: since bids change by at most $v_{\max}\,\Delta_{\mathrm{age}}$ under age bound $\Delta_{\mathrm{age}}$ (here $\leq 2N\tau$ when $\Lambda \geq 0$), realized utility satisfies
-$|\mathcal{U}_{\mathrm{live}} - \mathcal{U}| \leq n\, v_{\max}\, 2N\tau$,
-so frozen-score optimality transfers to live utility up to this additive drift term.
-Empirical measurement of realized optimality against a Hungarian oracle~\cite{kuhn1955hungarian} remains open (Sec.~\ref{sec:discussion}); we therefore do not claim Eq.~\eqref{eq:optimality-bound}-style guarantees as an empirically validated headline.
+\begin{theorem}[Expiry-free episode probability]\label{thm:probabilistic}
+Assume the Diminishing Marginal Gains (DMG) scoring property, slotted access,$0<q<1$,and
+\[
+\Lambda =
+\left\lfloor \frac{T_{\mathrm{val}}}{N\tau}\right\rfloor-1
+\geq 0.
+\]
+Let the episode consist of $F$ TDMA frames. For any directed
+peer-to-peer link, the probability that at least one belief-expiry
+event occurs during the episode is at most
+\[
+\pi_{\mathrm{exp}} =
+(1-q)^{\Lambda+1}.
+\]
+Under the independence assumptions of Sec.~\ref{sec:comm-model},
+the probability that no directed link experiences expiry during the
+episode is
+\[
+P_{\mathrm{no-expiry}}
+=
+\left(1-\pi_{\mathrm{exp}}\right)^{N(N-1)F}.
+\]
+Thus
+\[
+P_{\mathrm{no-expiry}}
+\geq
+\left[
+1-(1-q)^{\Lambda+1}
+\right]^{N(N-1)F}.
+\]
+This result is a reliability bound on the belief-management process;
+it does not by itself imply that consensus is reached within
+$T_{\mathrm{ideal}}+N\tau K$ under stochastic packet loss.
+\end{theorem}
+
+\begin{proof}
+For one directed link, a belief expires only after at least
+$\Lambda+1$ consecutive transmission opportunities fail to produce a
+refresh before the validity horizon. Since each opportunity succeeds
+with probability $q$, the probability of such a run is
+$(1-q)^{\Lambda+1}$.
+
+There are $N(N-1)$ directed links and at most $F$ refresh opportunities
+per link during the episode. Applying the union bound gives the stated
+episode-level reliability expression. The bound concerns expiry only;
+additional packet-delivery events may still delay the logical CBBA
+updates required for consensus.
+\end{proof}
+
+A belief-expiry event invalidates the no-expiry precondition used by
+the deterministic analysis; whether consensus is nevertheless reached
+after such an event is an implementation- and trajectory-dependent
+question evaluated empirically.
+
+A remaining question is what can be claimed about solution quality when bids arrive stale.
+
+Because agents move while auctions run,scores are time-varying,and we are careful about what can be claimed.
+
+\begin{proposition}[Conditional optimality statement]
+\label{prop:optimality}
+For a fixed-score episode,ifthe implemented bundle-size-one
+consensus auction terminates at a conflict-free allocation satisfying
+the corresponding greedy exchange condition,then its utility can be
+compared against the optimal assignment for that fixed instance.No general $50\%$ guarantee is claimed here unless the complete
+conditions of the corresponding CBBA approximation theorem are
+verified for the implemented update rule.
+
+\end{proposition}
 
 \subsection{Complexity Analysis}\label{sec:theory-complexity}
 Table~\ref{tab:complexity} compares per-agent costs ($n = |\mathcal{D}|$, $m = |\mathcal{O}|$); one frame consumes $\lceil N\tau / \Delta t \rceil$ ticks.
