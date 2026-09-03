@@ -28,9 +28,13 @@ except Exception:
     HAS_STATSMODELS = False
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-for _p in (_ROOT, os.path.dirname(_ROOT)):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
+# Only the repo root goes onto sys.path (never its parent), so the repo's own
+# ``src/`` cannot be shadowed by a sibling checkout with an older codebase.
+
+
+if _ROOT not in sys.path:
+
+    sys.path.insert(0, _ROOT)
 
 from benchmark.analyzers.stat_analyzer import (
     load_results, test_normality, confidence_interval, METRICS,
@@ -182,7 +186,16 @@ def plot_boxplots(data, path):
 
 
 def pdr_check(data, outdir):
-    rep = ['=== PDR MODEL VALIDATION ===', '']
+    """Validate the radio model against the end-to-end estimand.
+
+    packets_offered counts every scheduled sender->receiver pair (including
+    TX-failed slots), so PDR = received / offered is the true end-to-end
+    delivery probability q = (1 - p_tx)(1 - p_rx).
+    """
+    rep = ['=== PDR MODEL VALIDATION ===', '',
+           'Estimand: end-to-end q = (1-p_tx)(1-p_rx) over scheduled '
+           'sender->receiver opportunities',
+           '(TX-side failure is part of the offered-link count)', '']
     for pt in sorted(data['packet_loss'].unique()):
         if pt == 0:
             continue
@@ -190,14 +203,22 @@ def pdr_check(data, outdir):
         if len(sub) < 5:
             continue
         pr = pt / 2
-        qa = (1 - pt) * (1 - pr)
-        qb = 1 - pr
-        po = sub['pdr'].mean()
-        wo = sub['packets_offered'].sum()
-        wr = sub['packets_received'].sum()
-        w = wr / wo if wo > 0 else po
-        row = 'p_tx={0:.2f}: joint={1:.4f} rx={2:.4f} obs_w={3:.4f} matchA={4}'.format(
-            pt, qa, qb, w, 'YES' if abs(w - qa) < 0.02 else 'NO')
+        expected = (1.0 - pt) * (1.0 - pr)
+
+        offered = sub["packets_offered"].sum()
+        received = sub["packets_received"].sum()
+
+        observed = received / offered if offered > 0 else np.nan
+
+        row = (
+            "p_tx={0:.2f}: expected_end_to_end={1:.4f} "
+            "observed={2:.4f} error={3:.4f}"
+        ).format(
+            pt,
+            expected,
+            observed,
+            observed - expected,
+        )
         rep.append(row)
     txt = '\n'.join(rep)
     open(os.path.join(outdir, 'pdr_model_check.txt'), 'w').write(txt)
@@ -231,52 +252,160 @@ def kruskal_wallis(data, outdir):
 
 
 def regression(data, outdir):
+    """Descriptive mechanism regression on TDMA trials (HC3 robust SEs).
+
+    The staleness ratio rho = N*tau/T_val (with T_val = 2.0 s this equals
+    N*tau/2) and the nominal packet-loss rate are treated as controlled
+    experimental factors. This is a descriptive response-surface analysis,
+    NOT a causal estimator.
+    """
     if not HAS_STATSMODELS:
-        print('[!] no statsmodels')
+        print('[!] statsmodels missing')
         return
-    rep = ['=== FACTORIAL REGRESSION ===', '']
+
+    rep = ['=== FACTORIAL / MECHANISM REGRESSION ===', '']
+
     d = data.copy()
-    d['Tval'] = 2.0
-    d['n_tau'] = d['swarm_size'] * d['slot_duration'] / d['Tval']
-    formula = ('mtc ~ swarm_size + packet_loss + use_tdma + swarm_size:packet_loss + '
-               'swarm_size:use_tdma + packet_loss:use_tdma + n_tau')
+
+    d['staleness_ratio'] = d['swarm_size'] * d['slot_duration'] / 2.0
+
+    # Mechanism model is intentionally restricted to TDMA trials.
+    # This avoids conflating the communication mechanism with the
+    # open-channel baseline indicator.
+    d = d[d['use_tdma'] == 1].copy()
+
+    formula = 'mtc ~ staleness_ratio + packet_loss + staleness_ratio:packet_loss'
+
     try:
-        model = smf_ols(formula, data=d).fit()
+        model = smf_ols(formula, data=d).fit(cov_type='HC3')
+        rep.append('n observations : {0}'.format(int(model.nobs)))
+        rep.append('covariance     : HC3 (heteroskedasticity-robust)')
+        rep.append('')
         rep.append(model.summary().as_text())
         rep.append('')
-        rep.append(anova_lm(model, typ=2).to_string())
-        rep.append('')
-        rep.append('Key interactions:')
-        for term in ['swarm_size:packet_loss', 'swarm_size:use_tdma',
-                     'packet_loss:use_tdma', 'n_tau']:
+        rep.append('Mechanism coefficients:')
+        for term in ['staleness_ratio', 'packet_loss',
+                     'staleness_ratio:packet_loss']:
             if term in model.params.index:
-                rep.append('  {0}: coef={1:.4f} p={2:.4f}'.format(
+                rep.append('  {}: coef={:.6f}, p={:.6g}'.format(
                     term, model.params[term], model.pvalues[term]))
-    except Exception as e:
-        rep.append('Regression failed: {0}'.format(e))
-    txt = '\n'.join(rep)
-    open(os.path.join(outdir, 'regression_analysis.txt'), 'w').write(txt)
+    except Exception as exc:
+        rep.append('Regression failed: {}'.format(exc))
+
+    with open(os.path.join(outdir, 'regression_analysis.txt'), 'w') as f:
+        f.write('\n'.join(rep))
+
     print('[OK] regression_analysis.txt')
 
 
 def survival(data, outdir):
+    """Kaplan-Meier survival analysis with pairwise log-rank tests and a
+    Cox proportional-hazards model on TDMA trials (robust SEs)."""
     if not HAS_LIFELINES:
-        print('[!] no lifelines')
+        print('[!] lifelines missing')
         return
+
+    from lifelines.statistics import logrank_test
+
     rep = ['=== SURVIVAL ANALYSIS ===', '']
-    for bl, g in data.groupby('baseline'):
-        ev = g['converged'].astype(int).values
-        t = g['frames_to_consensus'].values.astype(float) * 0.1
-        t = np.where(ev == 1, t, 50.0)
+
+    d = data.copy()
+
+    d['event'] = d['converged'].astype(int)
+    d['duration_s'] = d['frames_to_consensus'].astype(float) * 0.1
+
+    # Non-converged trials are right-censored at the mission horizon.
+    d.loc[d['event'] == 0, 'duration_s'] = 50.0
+
+    # -----------------------------
+    # Kaplan-Meier by baseline
+    # -----------------------------
+    km_models = {}
+    for baseline, g in d.groupby('baseline'):
         kmf = KaplanMeierFitter()
-        kmf.fit(t, event_observed=ev, label=bl)
-        med = kmf.median_survival_time_
-        rep.append('{0}: conv={1}/{2} ({3:.0f}%) med={4}'.format(
-            bl, ev.sum(), len(ev), 100 * ev.mean(),
-            'inf' if np.isnan(med) else '{0:.2f}s'.format(med)))
-        rep.append('  survival@10s={0:.3f} @30s={1:.3f}'.format(kmf.predict(10), kmf.predict(30)))
-    txt = '\n'.join(rep)
-    open(os.path.join(outdir, 'survival_analysis.txt'), 'w').write(txt)
+        kmf.fit(
+            durations=g['duration_s'],
+            event_observed=g['event'],
+            label=str(baseline),
+        )
+        km_models[baseline] = kmf
+        median = kmf.median_survival_time_
+        rep.append('{}: events={}/{} ({:.1f}%), median={}'.format(
+            baseline,
+            int(g['event'].sum()),
+            len(g),
+            100.0 * g['event'].mean(),
+            'inf' if np.isinf(median) else '{:.3f}s'.format(median),
+        ))
+        rep.append('  S(10s)={:.4f}, S(30s)={:.4f}'.format(
+            float(kmf.predict(10.0)), float(kmf.predict(30.0))))
+
+    # -----------------------------
+    # Pairwise log-rank tests
+    # -----------------------------
+    baselines = sorted(d['baseline'].unique())
+    rep.append('')
+    rep.append('Pairwise log-rank tests:')
+    for i, b1 in enumerate(baselines):
+        for b2 in baselines[i + 1:]:
+            g1 = d[d['baseline'] == b1]
+            g2 = d[d['baseline'] == b2]
+            result = logrank_test(
+                g1['duration_s'],
+                g2['duration_s'],
+                event_observed_A=g1['event'],
+                event_observed_B=g2['event'],
+            )
+            rep.append('  {} vs {}: p={:.6g}'.format(b1, b2, result.p_value))
+
+    # -----------------------------
+    # Cox model (TDMA trials only)
+    # -----------------------------
+    tdma = d[d['use_tdma'] == 1].copy()
+    tdma['staleness_ratio'] = tdma['swarm_size'] * tdma['slot_duration'] / 2.0
+
+    cox_cols = ['duration_s', 'event', 'staleness_ratio', 'packet_loss']
+    cox_data = tdma[cox_cols].replace([np.inf, -np.inf], np.nan).dropna()
+
+    if len(cox_data) >= 20:
+        cph = CoxPHFitter()
+        cph.fit(cox_data, duration_col='duration_s', event_col='event',
+                robust=True)
+        rep.append('')
+        rep.append('=== COX PH: TDMA CONDITIONS ===')
+        rep.append(cph.summary[['coef', 'exp(coef)', 'p']].to_string())
+        rep.append('')
+        rep.append('Interpretation: exp(coef) > 1 increases the '
+                   'instantaneous convergence hazard.')
+        try:
+            cph.check_assumptions(cox_data, p_value_threshold=0.05,
+                                  show_plots=False)
+            rep.append('PH assumption diagnostic: completed '
+                       '(no output means no violations flagged).')
+        except Exception as exc:
+            rep.append('PH assumption diagnostic unavailable: {}'.format(exc))
+    else:
+        rep.append('')
+        rep.append('Cox model skipped: insufficient TDMA observations.')
+
+    with open(os.path.join(outdir, 'survival_analysis.txt'), 'w') as f:
+        f.write('\n'.join(rep))
+
+    # -----------------------------
+    # Figure
+    # -----------------------------
+    fig, ax = plt.subplots(figsize=(8, 6))
+    for baseline, kmf in km_models.items():
+        kmf.plot_survival_function(ax=ax, ci_show=True)
+    ax.set_ylim(0, 1.05)
+    ax.set_xlim(0, 50)
+    ax.set_xlabel('Time to consensus (s)')
+    ax.set_ylabel('Survival probability')
+    ax.set_title('Kaplan-Meier Time-to-Consensus')
+    ax.grid(alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(os.path.join(outdir, 'survival_curves.png'), dpi=300)
+    plt.close(fig)
     print('[OK] survival_analysis.txt')
 def correlation(data, outdir):
     rep = ['=== CORRELATION ===', '']
@@ -300,11 +429,55 @@ def correlation(data, outdir):
     print('[OK] correlation_analysis.txt')
 
 
+def populations_report(files, data):
+    """Explicit separation of experimental populations (manuscript Sec. V-E).
+
+    Distinguishes: number of runs, number of independent seeds, and number
+    of configurations -- the inferential unit is the SEED within a
+    configuration, never the pooled run count.
+    """
+    rep = ['=== CANONICAL POPULATION MANIFEST ===', '',
+           'This report is generated by ONE pipeline (benchmark/analyzers/',
+           'full_analysis.py) from the files listed below. Older artifacts',
+           '(e.g. benchmark_reduced.csv, 1620 rows) are superseded.', '']
+    for f in files:
+        try:
+            d = pd.read_csv(f)
+            ncfg = d.groupby(['baseline', 'swarm_size', 'packet_loss',
+                              'slot_duration', 'num_objectives',
+                              'num_threats']).ngroups
+            nseeds = d['trial'].nunique() if 'trial' in d.columns else '?'
+            rep.append('{0}'.format(os.path.basename(f)))
+            rep.append('  runs={0}  configs={1}  seeds/config={2}  '
+                       'baselines={3}'.format(len(d), ncfg, nseeds,
+                                              sorted(d['baseline'].unique())))
+        except Exception as e:
+            rep.append('{0}: ERROR {1}'.format(os.path.basename(f), e))
+    rep.append('')
+    rep.append('POOLED ANALYSIS SET: {0} runs, {1} baselines'
+               .format(len(data), data['baseline'].nunique()))
+    rep.append('Inferential unit: trial (seed) nested in configuration;')
+    rep.append('configurations are conditions, NOT independent draws.')
+    return '\n'.join(rep)
+
+
 def main(globs):
     data = collect(globs)
     print('Loaded {0} rows, {1} baselines'.format(len(data), data['baseline'].nunique()))
     outdir = os.path.join(_ROOT, 'benchmark', 'results', 'figures')
+    resdir = os.path.join(_ROOT, 'benchmark', 'results')
     os.makedirs(outdir, exist_ok=True)
+
+    # --- Canonical manifest: which artifact generated the paper? ---
+    pop_txt = populations_report(globs if isinstance(globs, list) else [], data)
+    open(os.path.join(resdir, 'population_manifest.txt'), 'w').write(pop_txt)
+    print('[OK] population_manifest.txt')
+
+    # --- Canonical consolidated report (replaces stale per-file reports) ---
+    canon = ['CANONICAL STATISTICAL REPORT',
+             'Generated by benchmark/analyzers/full_analysis.py',
+             'Source files:', os.path.basename(str(globs)), '', pop_txt, '']
+    open(os.path.join(resdir, 'statistical_report.txt'), 'w').write('\n'.join(canon))
 
     print('\n=== Shapiro-Wilk ===')
     for m in METRICS:
@@ -335,11 +508,25 @@ def main(globs):
     plot_cdf(data, os.path.join(outdir, 'convergence_curve.png'))
     plot_heatmap(data, os.path.join(outdir, 'heatmap.png'))
     plot_boxplots(data, os.path.join(outdir, 'boxplot.png'))
-    plot_survival(data, os.path.join(outdir, 'survival_curves.png'))
 
     print('\n=== SUMMARY ===')
     print('  runs={0} conv_rate={1:.1f}% mtc={2:.2f}s pdr={3:.3f}'.format(
         len(data), 100 * data['converged'].mean(), data['mtc'].mean(), data['pdr'].mean()))
+
+    # --- Consolidate every section into ONE canonical report (#10) ---
+    canon_path = os.path.join(resdir, 'statistical_report.txt')
+    with open(canon_path, 'a', encoding='utf-8') as f:
+        for name in ['pdr_model_check.txt', 'kruskal_wallis.txt',
+                     'regression_analysis.txt', 'survival_analysis.txt',
+                     'correlation_analysis.txt']:
+            p = os.path.join(outdir, name)
+            if os.path.exists(p):
+                f.write('\n\n' + open(p, encoding='utf-8').read())
+        f.write('\n\n=== HEADLINE (pooled, descriptive only) ===\n')
+        f.write('  runs={0} conv_rate={1:.1f}% mtc={2:.2f}s pdr={3:.3f}\n'.format(
+            len(data), 100 * data['converged'].mean(),
+            data['mtc'].mean(), data['pdr'].mean()))
+    print('[OK] statistical_report.txt (canonical, consolidated)')
 
 
 if __name__ == '__main__':

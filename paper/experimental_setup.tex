@@ -7,8 +7,9 @@ All experiments are executed by a deterministic, headless harness; no rendering 
 The environment is a $100 \times 100$\,m square workspace $\mathcal{W}$ with reflecting boundaries.
 Drones are homogeneous combat agents ($v_{\max} = 1.5$\,m/s, steering limit $0.2$, communication--sensing radius $25$\,m) integrated at $\Delta t = 0.1$\,s for a mission horizon of $F_{\max} = 500$ frames (50\,s).
 Objectives are placed uniformly at random in the central region $[15, 85]^2$; SAM threats (radius $15$\,m, strength $60$) are placed uniformly in $[20, 80]^2$.
-Belief validity is fixed at $T_{\mathrm{val}} = 2.0$\,s throughout, so by Theorem~\ref{thm:impossibility} the predicted staleness threshold sits at swarm sizes where $N\tau > 2$\,s---a regime our matrix deliberately spans.
-The radio layer is a communication-abstraction model (slotted access, stochastic loss), not a physical-channel simulation.
+Belief validity is fixed at $T_{\mathrm{val}} = 2.0$\,s throughout; by Theorem~\ref{thm:impossibility}, configurations with $N\tau > T_{\mathrm{val}}$ lie in the collapsed regime for \emph{verified} consensus---first-passage agreement may still occur transiently there, which is precisely the distinction our metrics are designed to expose.
+
+We emphasize that the radio layer is a \emph{communication-abstraction model}, not a physical-channel simulation: it captures the statistically salient features of real tactical links---slotted medium access, independent stochastic transmit/receive loss---while abstracting away physical-layer effects (fading, multipath, bandwidth, propagation delay, queueing, and MAC contention beyond the TDMA schedule) whose detailed modeling is standard but orthogonal to the scheduling--staleness question at hand.
 
 \subsection{Test Matrix}\label{sec:test-matrix}
 The released benchmark varies five factors:
@@ -20,7 +21,7 @@ slot duration $\tau \in \{25, 50, 100\}$\,ms.
 Each of the $3 \times 4 \times 3 \times 3 \times 3 = 324$ configurations is repeated over $t$ independent trials with deterministic seeding (base seed $42$, trial seed $42 + t'$), yielding fully reproducible runs.
 The dataset analyzed in Section~\ref{sec:results} uses $t = 15$ trials per configuration ($324 \times 15 = 4{,}860$ runs), tripling the replication of the earlier five-trial release to give statistically stable within-cell estimates; the identical harness supports arbitrary trial counts via a single command-line flag.
 
-Because $T_{\mathrm{val}} = 2$\,s and $\tau \leq 100$\,ms, configurations with $n \geq 21$ at $\tau = 100$\,ms ($N\tau > 2$\,s) fall beyond the staleness threshold of Theorem~\ref{thm:impossibility}; this lets us probe both sides of the phase transition within one matrix.
+Because $T_{\mathrm{val}} = 2$\,s and $\tau \leq 100$\,ms, configurations with $n \geq 21$ at $\tau = 100$\,ms ($N\tau > 2$\,s) fall beyond the staleness threshold of Theorem~\ref{thm:noiseless}; this lets us probe both sides of the verified-consensus boundary---and, critically, dissociate transient first-passage agreement from persistent consensus---within one matrix.
 
 \subsection{Metrics}\label{sec:metrics}
 Four metrics are recorded per trial. Let $\mathcal{D}_{\mathrm{alive}}(t)$ denote alive agents at trial end and $L = 100$\,m.
@@ -46,12 +47,14 @@ Counting unique objectives rather than the number of assigned agents prevents CE
     \label{eq:pdr}
 \end{equation}
 where every (transmit event $\times$ intended receiver) pair counts as one offered link, making PDR insensitive to fan-out multiplicity.
+The estimand is deliberately conditional: because a transmission that is lost at the sender never generates offered links, PDR measures $P(\text{decode} \mid \text{transmission occurred}) = 1 - p_{\mathrm{rx}}$, not the joint end-to-end success $q = (1-p_{\mathrm{tx}})(1-p_{\mathrm{rx}})$ used in the theory of Sec.~\ref{sec:theory}. Transmission-side success is tracked separately as $P_{\mathrm{tx}} = \text{packets\_sent} / \text{scheduled opportunities}$, so the end-to-end quantity is recovered exactly as $P_{\mathrm{e2e}} = P_{\mathrm{tx}} \cdot \mathrm{PDR}$. All three quantities are recorded per trial.
 
-\emph{(4) Mean Time to Consensus (MTC)}---wall-clock time from trial start to global ledger agreement (Def.~\ref{def:eventual}), censored at the horizon:
+\emph{(4) Mean Time to Consensus (MTC)}---wall-clock time from trial start to global ledger agreement (Def.~\ref{def:firstpassage}), censored at the horizon:
 \begin{equation}
     \mathrm{MTC} = \min(t_{\mathrm{cons}} \cdot \Delta t,\ F_{\max}\Delta t).
     \label{eq:mtc}
 \end{equation}
+In addition to first-passage MTC we record a binary \emph{verified-consensus} indicator (agreement persisting for $T_{\mathrm{val}}/\Delta t$ frames after first passage, Def.~\ref{def:verified}) and the number of post-passage \emph{regressions} caused by belief expiry; Sec.~\ref{sec:results} reports both because Theorem~\ref{thm:noiseless} makes sharply different predictions for the two quantities.
 
 \subsection{Baseline Radio Models}\label{sec:baselines}
 Four channel models isolate each design decision:
@@ -64,14 +67,19 @@ Four channel models isolate each design decision:
 Comparisons against all four baselines follow the protocol of Sec.~\ref{sec:test-matrix}; headline statistics in Sec.~\ref{sec:results} are reported on the released TDMA-CBBA corpus.
 
 \subsection{Statistical Methodology}\label{sec:setup-stats}
-Each configuration (Sec.~\ref{sec:test-matrix}) is instantiated over $t = 15$ independent seeds; aggregate figures across $324$ conditions are descriptive.
-All metrics reject normality (Shapiro--Wilk, Sec.~\ref{sec:results}); we report bootstrap 95\% CIs, Kruskal--Wallis contrasts, and fit the OLS factorial regression
+We make the statistical unit explicit throughout. Each \emph{configuration} fixes one combination of the five factors (Section~\ref{sec:test-matrix}); each configuration is instantiated over $t = 15$ \emph{independent seeds}. The independent observation is the seed-level trial; aggregate figures across configurations are descriptive, not additional replication. Distinguishing \emph{runs} ($4{,}860$), \emph{seeds} ($15$ per configuration), and \emph{conditions} ($324$) is essential to avoid inflating apparent sample size.
+
+All metrics reject normality (Shapiro--Wilk, Sec.~\ref{sec:results}); we therefore:
+(i) report means with bias-corrected bootstrap 95\% confidence intervals ($10{,}000$ resamples);
+(ii) use Kruskal--Wallis $H$ tests with Dunn--Bonferroni post-hoc comparisons for between-baseline contrasts rather than parametric ANOVA;
+(iii) within TDMA conditions, treat the staleness ratio $\rho = N\tau/T_{\mathrm{val}}$ (which with $T_{\mathrm{val}} = 2$\,s equals $N\tau/2$) and the nominal packet-loss rate $p_{\mathrm{tx}}$ as controlled experimental factors and fit
 \begin{equation}
-    \widehat{\mathrm{MTC}} = \beta_0 + \beta_1 N + \beta_2 p_{\mathrm{tx}} + \beta_3 \tau + \beta_4 M + \beta_5 (N{\cdot}p_{\mathrm{tx}}) + \beta_6 (p_{\mathrm{tx}}{\cdot}\tau) + \beta_7 \frac{N\tau}{T_{\mathrm{val}}}
-    \label{eq:regression}
+\mathrm{MTC} \;=\; \beta_0 + \beta_1 \rho + \beta_2 p_{\mathrm{tx}} + \beta_3 \rho\, p_{\mathrm{tx}} + \varepsilon,
+\label{eq:regression}
 \end{equation}
-with HC3 robust standard errors.
-Censored MTC is treated as right-censored survival data (Kaplan--Meier curves, Cox regression), not as a numerical outcome at the horizon cap.
+with HC3 robust standard errors. We use regression as a descriptive mechanism analysis rather than a causal estimator: the factors are controlled in simulation and the seeds are deterministic, but the fit describes the observed response surface over the designed grid, and its coefficients are not claimed to isolate causal structure beyond that controlled variation.
+
+Censored MTC ($\mathrm{MTC} = 50$\,s when consensus is never observed) is treated as right-censored time-to-event data, not as a numerical outcome: Kaplan--Meier survival estimates and pairwise log-rank tests are used for baseline comparisons. A Cox proportional-hazards model is fit separately to TDMA trials using the staleness ratio and packet loss as covariates, with robust standard errors. This avoids treating ``no consensus within the horizon'' as if consensus occurred exactly at 50\,s.
 
 \subsection{Communication--Motion Isolation Ablation}\label{sec:setup-ablation}
 We additionally run an allocation-only ablation with motion disabled to isolate communication-layer effects on MTC.

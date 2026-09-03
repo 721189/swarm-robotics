@@ -30,12 +30,12 @@ The aggregate PDR of $0.938$ is consistent with the two-stage loss model of Sec.
 \subsection{Convergence Behavior}
 Fig.~\ref{fig:mtc_vs_swarm} shows MTC against swarm size.
 Consensus time grows approximately linearly with $n$ at low loss, consistent with the scheduling-delay term $N\tau K$ in Theorem~\ref{thm:noiseless}: each additional drone both lengthens the frame and adds one ledger to synchronize.
-At larger swarms and higher loss rates the curve separates into a converging branch and a saturated branch pinned at the 50\,s horizon---the two regimes predicted by Theorems~\ref{thm:noiseless} and \ref{thm:impossibility}, respectively.
+At larger swarms and higher loss rates the curve separates into a converging branch and a saturated branch pinned at the 50\,s horizon---the two regimes delimited by Theorems~\ref{thm:noiseless} and \ref{thm:impossibility}, with Theorem~\ref{thm:probabilistic} bounding the expiry-free probability of the deterministic precondition.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{mtc_vs_swarm_size.png}
-\caption{Mean time to consensus vs.\ swarm size (error bars: std.\ across trials). Beyond the staleness threshold $N\tau > T_{\mathrm{val}} = 2$\,s of Thm.~\ref{thm:impossibility}, MTC saturates at the mission horizon, marking the synchronization--staleness phase transition.}
+\caption{Mean time to consensus vs.\ swarm size (error bars: std.\ across trials). Beyond the staleness threshold $N\tau > T_{\mathrm{val}} = 2$\,s of Thm.~\ref{thm:noiseless}(ii), MTC saturates at the mission horizon, marking the synchronization--staleness phase transition.}
 \label{fig:mtc_vs_swarm}
 \end{figure}
 
@@ -44,7 +44,7 @@ The convergence CDF (Fig.~\ref{fig:convergence_curve}) makes this bimodality exp
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{convergence_curve.png}
-\caption{Empirical CDF of time to consensus. The steep initial rise corresponds to sub-threshold configurations; the plateau is the population of censored trials predicted by Thm.~\ref{thm:impossibility}.}
+\caption{Empirical CDF of time to consensus. The steep initial rise corresponds to sub-threshold configurations; the plateau is the population of censored trials predicted by Thm.~\ref{thm:noiseless}(ii).}
 \label{fig:convergence_curve}
 \end{figure}
 
@@ -60,18 +60,18 @@ The observed per-link delivery ratios ($0.975$, $0.924$, $0.849$ at $5\%$, $15\%
 \end{figure}
 
 \subsection{Distributional Structure}
-The heatmap (Fig.~\ref{fig:heatmap}) locates the phase transition of Theorem~\ref{thm:impossibility} in parameter space: mean MTC rises smoothly in the low-$n$, low-loss corner, then jumps discontinuously toward the horizon cap as $N\tau$ approaches and exceeds $T_{\mathrm{val}} = 2$\,s---the predicted boundary running diagonally through the $(n, p)$ plane.
+The heatmap (Fig.~\ref{fig:heatmap}) locates the phase transition of Theorem~\ref{thm:noiseless}(ii) in parameter space: mean MTC rises smoothly in the low-$n$, low-loss corner, then jumps discontinuously toward the horizon cap as $N\tau$ approaches and exceeds $T_{\mathrm{val}} = 2$\,s---the predicted boundary running diagonally through the $(n, p)$ plane.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{heatmap.png}
-\caption{Mean MTC over swarm size $\times$ packet loss, annotated with convergence rate. The jump toward the cap traces the synchronization--staleness phase transition of Thm.~\ref{thm:impossibility}.}
+\caption{Mean MTC over swarm size $\times$ packet loss, annotated with convergence rate. The jump toward the cap traces the synchronization--staleness phase transition of Thm.~\ref{thm:noiseless}(ii).}
 \label{fig:heatmap}
 \end{figure}
 
 \subsection{Censoring-Aware Survival Analysis}\label{sec:results-survival}
 Because consensus is not observed in $54.2\%$ of trials, we treat time-to-consensus as right-censored survival data rather than a numerical scalar.
-Fig.~\ref{fig:survival} shows Kaplan--Meier survivor curves per baseline: ideal and loss-only open-channel swarms converge almost immediately (median $0.2$--$0.4$\,s), TDMA-only converges with a heavy tail (median $12.3$\,s, $87\%$ within horizon), while TDMA-with-loss retains only a $50\%$ convergence fraction, its survivor curve never reaching the baseline---the signature of the structural phase transition rather than a slow-but-certain process.
+Fig.~\ref{fig:survival} shows Kaplan--Meier survivor curves per baseline: ideal and loss-only open-channel swarms converge almost immediately (median $0.2$--$0.4$\,s), TDMA-only converges with a heavy tail (median $12.3$\,s, $87\%$ within horizon), while TDMA-with-loss retains only a $50\%$ convergence fraction, its survivor curve never reaching the baseline---the signature of the structural phase transition rather than a slow-but-certain process. Pairwise log-rank tests and a TDMA-only Cox proportional-hazards fit (staleness ratio and packet loss as covariates, robust standard errors) supplement the curves (Sec.~\ref{sec:setup-stats}); full outputs are in \texttt{survival\_analysis.txt}.
 
 \begin{figure}[htbp]
 \centering
@@ -81,7 +81,7 @@ Fig.~\ref{fig:survival} shows Kaplan--Meier survivor curves per baseline: ideal 
 \end{figure}
 
 \subsection{Factorial Regression and Ablation Evidence}\label{sec:results-regression}
-The regression Eq.~\eqref{eq:regression} isolates causal structure. Both interaction terms central to the phase-transition hypothesis are significant: the scheduling--loss coupling $\beta_5$ (MTC $\times$ $N{\times}p_{\mathrm{tx}}$) and the loss--scheduling interaction $\beta_6$ ($p_{\mathrm{tx}}\times\tau$) have $p < 10^{-4}$, whereas the pure staleness-ratio term $\beta_7$ is negligible once its constituents are conditioned on---confirming that the observed collapse is driven by the joint scheduling-and-loss mechanism of Thm.~\ref{thm:impossibility}, not by $N\tau$ alone. (Full coefficient tables are in \texttt{regression\_analysis.txt}.)
+Within TDMA conditions we use regression as a descriptive mechanism analysis rather than a causal estimator (Eq.~\eqref{eq:regression}, Sec.~\ref{sec:setup-stats}): the staleness ratio $\rho = N\tau/T_{\mathrm{val}}$ and the packet-loss rate are treated as controlled experimental factors, and HC3 robust standard errors are reported. The estimated interaction $\beta_3$ between $\rho$ and $p_{\mathrm{tx}}$ is consistent with the joint scheduling-and-loss mechanism of Thm.~\ref{thm:noiseless}(ii); full coefficient tables are in \texttt{regression\_analysis.txt}.
 
 Table~\ref{tab:ablation} summarizes the four-baseline sweep, which refines the causal decomposition of Sec.~\ref{sec:baselines}: moving from ideal (MTC $0.33$\,s) to TDMA-only raises MTC to $18.2$\,s and drops convergence to $87\%$; adding loss pushes TDMA further to $31.1$\,s / $50\%$. Crucially, open-channel loss-only converges $100\%$ at every loss level---fresh every-frame broadcasting defeats information expiry, isolating belief staleness as the mechanism that breaks TDMA operation.
 
