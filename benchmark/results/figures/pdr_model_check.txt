@@ -3,6 +3,6 @@
 Estimand: end-to-end q = (1-p_tx)(1-p_rx) over scheduled sender->receiver opportunities
 (TX-side failure is part of the offered-link count)
 
-p_tx=0.05: expected_end_to_end=0.9262 observed=0.9758 error=0.0496
-p_tx=0.15: expected_end_to_end=0.7863 observed=0.9258 error=0.1396
-p_tx=0.30: expected_end_to_end=0.5950 observed=0.8509 error=0.2559
+p_tx=0.05: expected_end_to_end=0.9262 observed=0.9268 error=0.0006
+p_tx=0.15: expected_end_to_end=0.7863 observed=0.7871 error=0.0009
+p_tx=0.30: expected_end_to_end=0.5950 observed=0.5941 error=-0.0009

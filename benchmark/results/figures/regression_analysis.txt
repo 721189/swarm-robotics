@@ -1,37 +1,37 @@
 === FACTORIAL / MECHANISM REGRESSION ===
 
-n observations : 6690
+n observations : 6210
 covariance     : HC3 (heteroskedasticity-robust)
 
                             OLS Regression Results                            
 ==============================================================================
-Dep. Variable:                    mtc   R-squared:                       0.335
-Model:                            OLS   Adj. R-squared:                  0.334
-Method:                 Least Squares   F-statistic:                     1876.
+Dep. Variable:                    mtc   R-squared:                       0.595
+Model:                            OLS   Adj. R-squared:                  0.595
+Method:                 Least Squares   F-statistic:                     3914.
 Date:                Thu, 03 Sep 2026   Prob (F-statistic):               0.00
-Time:                        18:17:11   Log-Likelihood:                -28624.
-No. Observations:                6690   AIC:                         5.726e+04
-Df Residuals:                    6686   BIC:                         5.728e+04
+Time:                        19:32:23   Log-Likelihood:                -25101.
+No. Observations:                6210   AIC:                         5.021e+04
+Df Residuals:                    6206   BIC:                         5.024e+04
 Df Model:                           3                                         
 Covariance Type:                  HC3                                         
 ===============================================================================================
                                   coef    std err          z      P>|z|      [0.025      0.975]
 -----------------------------------------------------------------------------------------------
-Intercept                      10.4222      0.493     21.138      0.000       9.456      11.389
-staleness_ratio                15.5211      0.433     35.865      0.000      14.673      16.369
-packet_loss                    64.3138      2.999     21.443      0.000      58.435      70.192
-staleness_ratio:packet_loss    -6.4202      2.478     -2.591      0.010     -11.277      -1.563
+Intercept                      -6.2306      0.282    -22.117      0.000      -6.783      -5.678
+staleness_ratio                20.3700      0.391     52.098      0.000      19.604      21.136
+packet_loss                    73.0334      2.910     25.099      0.000      67.330      78.737
+staleness_ratio:packet_loss    10.1269      3.126      3.240      0.001       4.000      16.254
 ==============================================================================
-Omnibus:                     3415.833   Durbin-Watson:                   0.357
-Prob(Omnibus):                  0.000   Jarque-Bera (JB):              364.190
-Skew:                           0.072   Prob(JB):                     8.26e-80
-Kurtosis:                       1.866   Cond. No.                         25.3
+Omnibus:                      228.392   Durbin-Watson:                   0.499
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):              229.583
+Skew:                           0.437   Prob(JB):                     1.40e-50
+Kurtosis:                       2.651   Cond. No.                         27.3
 ==============================================================================
 
 Notes:
 [1] Standard Errors are heteroscedasticity robust (HC3)
 
 Mechanism coefficients:
-  staleness_ratio: coef=15.521104, p=1.07236e-281
-  packet_loss: coef=64.313767, p=5.25323e-102
-  staleness_ratio:packet_loss: coef=-6.420242, p=0.00957754
+  staleness_ratio: coef=20.370017, p=0
+  packet_loss: coef=73.033386, p=5.14089e-139
+  staleness_ratio:packet_loss: coef=10.126928, p=0.00119646
