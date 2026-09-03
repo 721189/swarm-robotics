@@ -74,12 +74,15 @@ The objective is a decentralized, conflict-free assignment $a: \mathcal{D} \to \
     \label{eq:utility}
 \end{equation}
 where $c_{ij} = \max(0.1,\; C_0 - d(\mathbf{p}_i, \mathbf{q}_j))$ is drone $i$'s bid for objective $o_j$ ($C_0 = 100$), subject to (a) each objective receiving at most one winner, (b) convergence to ledger agreement within the mission horizon, and (c) operation over the lossy slotted channel of Section~\ref{sec:comm-model}.
-Conflict-freeness is defined by agreement:
-
-\begin{definition}[Eventual consensus]\label{def:eventual}
-The allocation is said to have reached \emph{eventual consensus} if there exists a finite time $T_{\mathrm{cons}}$ such that all ledgers coincide for every $t \geq T_{\mathrm{cons}}$:
+=======
+\begin{definition}[Eventual agreement (consensus)]\label{def:eventual}
+The allocation is settled---the swarm reaches \emph{consensus}---when all ledgers coincide:
 \begin{equation}
-    \mathcal{L}_1(t) = \mathcal{L}_2(t) = \cdots = \mathcal{L}_N(t), \qquad \forall\, t \geq T_{\mathrm{cons}}.
-    \label{eq:eventual-consensus}
+    \mathcal{L}_1(t) = \cdots = \mathcal{L}_N(t),
+    \label{eq:consensus-def}
 \end{equation}
+i.e., every live agent $d_i$ holds identical winner and bid maps $\mathcal{W}_i, \mathcal{B}_i$ for every objective.
+Conflict-freeness and consensus coincide under this definition, since a settled ledger names exactly one winner per objective.
+We distinguish the \emph{first-passage} instance of Eq.~\eqref{eq:consensus-def} (Def.~\ref{def:firstpassage}) from \emph{verified} consensus, in which Eq.~\eqref{eq:consensus-def} persists for at least $T_{\mathrm{val}}$ (Def.~\ref{def:verified}).
+>>>>>>> 5b0b0f8 (Step 5: formal two-stage loss model and end-to-end PDR definition in problem formulation)
 \end{definition}
