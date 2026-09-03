@@ -1,7 +1,7 @@
 \section{Discussion}\label{sec:discussion}
 
 \subsection{What the Results Mean for Swarm Designers}
-The synchronization--staleness phase transition (Thm.~\ref{thm:impossibility}) elevates a routine engineering parameter---how long to remember a teammate's telemetry---into a first-class scalability constraint.
+The synchronization--staleness phase transition (Thm.~\ref{thm:noiseless}(ii)) elevates a routine engineering parameter---how long to remember a teammate's telemetry---into a first-class scalability constraint.
 Concretely, with $\tau = 50$\,ms slots and $T_{\mathrm{val}} = 2$\,s, our analysis caps a fully convergent TDMA-CBBA fleet at $N \leq 40$ drones; larger fleets require either faster slots, hierarchical scheduling (cluster-based TDMA), or validity horizons that scale as $T_{\mathrm{val}} = c\,N\tau$.
 We emphasize that this constraint is \emph{structural}, not statistical: beyond the threshold no amount of additional runtime recovers consensus, because ghost pruning deterministically erases allocations faster than gossip can re-establish them.
 
@@ -14,9 +14,24 @@ The phase transition complements asynchronous-CBBA analyses that assume infinite
 A demand-assigned D-TDMA extension (slot doubling near threats or objectives) is implemented but excluded from the theoretical claims and benchmark matrix here.
 
 \subsection{Limitations}
-Our claims are bounded by simulation scale ($n \leq 50$), static objectives, and homogeneous agents without battery attrition in the benchmark corpus---so ghost pruning is exercised only through belief expiry, not true agent loss.
-We validate conflict-freeness structurally but do not yet report realized utility against a Hungarian-optimal upper bound (Prop.~\ref{prop:optimality}), and the $p_{\mathrm{rx}} = p_{\mathrm{tx}}/2$ loss asymmetry is a modeling choice whose sensitivity remains unexplored.
+Several limitations bound the scope of our claims.
+\emph{(i) Scale.}
+Experiments span $n \leq 50$ in simulation; physical swarms introduce latency jitter, asymmetric links, and localization error absent here.
+\emph{(ii) Static tasks.}
+Objectives are stationary; dynamic task arrival would exercise bundle re-planning paths not covered by our single-claim auction.
+\emph{(iii) Utility measurement.}
+Proposition~\ref{prop:optimality} is validated structurally (conflict-freeness at consensus); we do not yet report realized utility against a Hungarian-optimal upper bound, so its utility-comparison claim remains to be quantified empirically.
+\emph{(iv) Homogeneity and attrition.}
+All agents share parameters, and battery attrition is disabled in the benchmark corpus, so the fault-tolerance path of ghost pruning is exercised only through belief expiry rather than true agent loss.
+\emph{(v) D-TDMA coverage.}
+The D-TDMA extension is specified and implemented but was disabled in the released matrix; its empirical characterization is future work.
+\emph{(vi) Loss asymmetry.}
+The $p_{\mathrm{rx}} = p_{\mathrm{tx}}/2$ convention is a modeling choice; sensitivity to this ratio is unexplored.
 
 \subsection{Future Work}
-Three directions follow directly: adaptive validity horizons $T_{\mathrm{val},i} = \hat{c}\,\widehat{N}\tau$ that self-scale with estimated neighbor count; utility-grounded evaluation against an optimal-assignment oracle; and hierarchical or learned slot allocation to push the phase transition outward without faster radios.
-Physical-hardware trials on a $10$--$20$ drone testbed would anchor the simulation-to-reality gap.
+Four directions follow directly.
+First, \emph{adaptive horizons}: let each agent set $T_{\mathrm{val},i} = \hat{c}\,\widehat{N}\tau$ from its estimated neighbor count, converting Theorem~\ref{thm:noiseless}(ii)'s constraint into a self-scaling protocol.
+Second, \emph{utility-grounded evaluation}: add an optimal-assignment oracle to measure realized optimality ratios and empirically quantify the utility gap relative to the optimal assignment that Proposition~\ref{prop:optimality} frames.
+Third, \emph{hierarchical scheduling}: cluster-based TDMA can shrink effective frame length below $N\tau$, pushing the phase transition outward without faster radios.
+Fourth, \emph{learned slot allocation}: replace proximity-triggered doubling with a lightweight learned policy that anticipates contention, trading a small compute budget for further latency reduction.
+Finally, physical-hardware trials on a $10$--$20$ drone testbed with real 2.4\,GHz radios would anchor the simulation-to-reality gap.

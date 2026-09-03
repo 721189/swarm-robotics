@@ -1,11 +1,11 @@
 \section{Methodology: TDMA-CBBA}\label{sec:methodology}
 
 TDMA-CBBA interleaves CBBA's two-phase consensus-auction loop with a slotted radio discipline and belief management.
-Algorithm~\ref{alg:tmdacbba} summarizes one simulation frame; the components relative to canonical CBBA---slotted medium access, two-stage packet loss, and belief expiry---are detailed in Sections~\ref{sec:method-slotted}--\ref{sec:method-belief}, followed by the D-TDMA extension in Section~\ref{sec:dtdma}.
+Algorithm~\ref{alg:tdmacbba} summarizes one simulation frame; the components relative to canonical CBBA---slotted medium access, two-stage packet loss, and belief expiry---are detailed in Sections~\ref{sec:method-slotted}--\ref{sec:method-belief}, followed by the D-TDMA extension in Section~\ref{sec:dtdma}.
 
 \begin{algorithm}[t]
 \caption{TDMA-CBBA frame execution (one tick, $\Delta t$)}
-\label{alg:tmdacbba}
+\label{alg:tdmacbba}
 \begin{algorithmic}[1]
 \State $t \gets t + \Delta t$
 \Statex \Comment{// Phase 1: Radio arbitration}
@@ -34,12 +34,12 @@ Algorithm~\ref{alg:tmdacbba} summarizes one simulation frame; the components rel
 \end{algorithmic}
 \end{algorithm}
 
-\subsection{Phase I: Consensus Auction over Ledgers}\label{sec:method-auction}
+\subsection{Phase I: Single-Task Consensus Auction}\label{sec:method-auction}
 Each drone executes the CBBA phases locally, restricted to its perceived swarm $\mathcal{P}_i$:
 
 \emph{(a) Ghost-drone pruning.}
 Before bidding, drone $i$ removes from its ledger every objective whose believed winner $w \notin \mathcal{P}_i \cup \{i\}$: it resets $\mathcal{B}_i(o_j) \leftarrow 0$ and $\mathcal{W}_i(o_j) \leftarrow \bot$, releasing the allocation.
-This mechanism provides fault tolerance against departed agents, but as Section~\ref{sec:phase-transition} shows, it is also the mechanism through which belief expiry can destabilize consensus.
+This mechanism provides fault tolerance against departed agents, but as Section~\ref{sec:theory-noiseless}(ii) shows, it is also the mechanism through which belief expiry can destabilize consensus.
 
 \emph{(b) Local greedy bid.}
 Drone $i$ evaluates each objective $o_j$ whose score satisfies $c_{ij} > \mathcal{B}_i(o_j)$ and claims the objective with maximal net gain $c_{ij} - \mathcal{B}_i(o_j)$, updating $a_i$, $\mathcal{B}_i(o_j) \leftarrow c_{ij}$, and $\mathcal{W}_i(o_j) \leftarrow i$; any previously held task is released when switching.
@@ -48,7 +48,12 @@ Drone $i$ evaluates each objective $o_j$ whose score satisfies $c_{ij} > \mathca
 Upon receiving a broadcast from peer $k$, drone $i$ performs an element-wise monotone merge: if the incoming bid exceeds its own for some $o_j$, it adopts both that bid and the sender's winner entry.
 If the adopted winner displaces $i$'s own assignment ($a_i = o_j$ but $\mathcal{W}_i(o_j) \neq i$), the outbid drone immediately releases $a_i \leftarrow \varnothing$.
 
-Because merges are monotone in bid value and winner entries travel with bids, this update rule is exactly the max-consensus of CBBA~\cite{choi2009}; Lemma~\ref{lem:monotone} formalizes the property driving our convergence proofs.
+The released implementation uses a single-task, bundle-size-one
+CBBA variant. Each agent maintains one active task and exchanges
+winner--bid pairs through the communication layer. The implementation
+therefore captures the consensus and communication dynamics relevant
+to the present study, but does not claim to implement the full
+multi-task bundle construction of canonical CBBA.
 \subsection{Phase II: Motion Control}
 Between auctions, drones execute a potential-field controller toward assigned objectives, away from SAM threats (Eq.~\eqref{eq:threat-potential}), and with Reynolds-style separation from neighbors within $4$\,m drawn from the perceived swarm $\mathcal{P}_i$ under TDMA.
 An allocation-only ablation (Sec.~\ref{sec:setup-ablation}) with motion disabled confirms that MTC ordering across baselines is driven by the communication layer.
@@ -71,5 +76,21 @@ Each mailbox entry carries its receive timestamp; entries older than $T_{\mathrm
 Belief expiry serves two purposes: it bounds mailbox memory, and it implements graceful degradation under agent attrition (departed agents stop transmitting and are forgotten within $T_{\mathrm{val}}$).
 Its interaction with TDMA scheduling is the central object of Section~\ref{sec:theory}: expiry converts bounded delay into bounded \emph{belief age}, and consensus survives only while worst-case belief age stays below the horizon.
 \subsection{Dynamic TDMA (D-TDMA) Extension}\label{sec:dtdma}
-We optionally extend the scheduler with demand-driven slot doubling when an agent is near a threat or objective; grants are non-preemptive and preserve round-robin order.
-D-TDMA is implemented in the released codebase but excluded from the theoretical claims and benchmark matrix of this paper (Sec.~\ref{sec:discussion}).
+Fixed slot lengths waste capacity on quiet agents and starve safety-critical ones.
+We therefore extend the scheduler with demand-driven slot doubling:
+
+\begin{enumerate}
+    \item Each drone continuously evaluates the proximity predicate
+    \begin{equation}
+        \phi_i = \Big( \min_l d(\mathbf{p}_i, \mathbf{x}_l) < r_l + 5\,\mathrm{m} \Big)
+        \ \lor\
+        \Big( \min_j d(\mathbf{p}_i, \mathbf{q}_j) < 20\,\mathrm{m} \Big),
+        \label{eq:dtdma-predicate}
+    \end{equation}
+    i.e., the drone is near a threat or approaching an objective.
+    \item If $\phi_i$ holds, the drone raises a double-slot request flag addressed to the scheduler.
+    \item When the drone's next scheduled slot begins, the scheduler grants a doubled slot of length $2\tau$, then clears the flag.
+    \item Grants are non-preemptive and preserve round-robin order: at most one doubling occurs per visit, slot order is never permuted, so the frame remains collision-free and the analysis of Section~\ref{sec:theory} carries over with effective cycle time bounded by $2N\tau$.
+\end{enumerate}
+
+D-TDMA thus adds an adaptive, safety-aware layer on top of deterministic medium access: contested agents obtain up to twice the telemetry bandwidth exactly when their state estimates matter most (threat evasion, terminal approach), while Theorem~\ref{thm:noiseless}(i) and the conditional optimality statement of Proposition~\ref{prop:optimality} carry over under the relaxed condition $2N\tau \leq T_{\mathrm{val}}$.

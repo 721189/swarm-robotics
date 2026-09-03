@@ -163,7 +163,6 @@ $f_{t+1}(0) = q \sum_{k=0}^{s-1} f_t(k)$,
 $f_{t+1}(k{+}1) = (1-q)\, f_t(k)$ for $0 \leq k < s{-}1$.
 This recursion counts failure runs exactly.
 \end{lemma}
->>>>>>> 99b7624 (Steps 1-2: stochastic theorem becomes reliability-only bound; add structural impossibility theorem (Thm. impossibility); fix loss-immunity definition semantics (floor, Lambda=-1 iff N*tau>T_val))
 
 \begin{proof}
 $f_t(k)$ is the probability that after $t$ attempts no run of $s$ consecutive failures has occurred and the trailing failure streak has length exactly $k < s$. A success resets the streak to zero (weight $q$, summed over all safe states); a failure extends it by one (weight $1-q$); reaching streak length $s$ leaves the safe state space and corresponds precisely to an expiry. Summing the mass over safe terminal states yields Eq.~\eqref{eq:run-recursion}.

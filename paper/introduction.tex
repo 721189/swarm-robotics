@@ -18,7 +18,8 @@ Worse, when practitioners add the standard engineering safeguard of \emph{belief
 if a full TDMA cycle $N\tau$ exceeds $T_{\mathrm{val}}$, every agent's belief about every teammate expires before it can be refreshed; cascading allocation erasures then race against re-learning, and consensus becomes \emph{structurally unreachable}.
 To our knowledge, this failure mode---a \emph{synchronization--staleness phase transition} governed by the ratio $N\tau / T_{\mathrm{val}}$---has not been identified in the CBBA literature, despite belief-expiry heuristics being common practice in deployed systems.
 \subsection{Our Approach}
-We propose \textbf{TDMA-CBBA}, a communication-constrained formulation of CBBA in which:
+We study a communication-constrained, bundle-size-one CBBA variant,
+which we refer to as \textbf{TDMA-CBBA}, in which:
 (i) agents transmit exclusively within assigned Time Division Multiple Access slots of duration $\tau$, eliminating intra-frame collisions by construction;
 (ii) transmissions are subject to independent stochastic packet loss on both transmit and receive legs;
 (iii) each agent maintains a time-stamped ledger of peers' bids and allocations, filtered through a belief-validity horizon $T_{\mathrm{val}}$.
@@ -30,11 +31,19 @@ This paper makes four contributions:
     \item \textbf{Convergence theory under scheduled, lossy communication (Thm.~\ref{thm:noiseless}).}
     We prove that TDMA-CBBA converges to a conflict-free assignment within
     $T_{TDMA} \leq T_{ideal} + N\tau K$
+<<<<<<< HEAD
     for $K$ auction rounds, provided one full TDMA frame fits within the belief-validity horizon, $N\tau \leq T_{\mathrm{val}}$.
     To our knowledge this is the first convergence result for CBBA under slotted medium access with explicit belief expiry.
     \item \textbf{Optimality preservation despite stale bids (Prop.~\ref{prop:optimality}).}
     We prove that CBBA's 50\% optimality guarantee survives stale-bid conflicts induced by bounded communication delay: monotone ledger merging ensures transient misallocations are repaired by subsequent consensus rounds, so the final assignment retains $\mathcal{U}_{TDMA} \geq 0.5\,\mathcal{U}$ for DMG score functions.
     \item \textbf{A synchronization--staleness phase transition (Sec.~\ref{sec:phase-transition}, Thm.~\ref{thm:impossibility}).}
+=======
+    for $K$ auction rounds, provided one full TDMA frame fits within the belief-validity horizon, $N\tau \leq T_{\mathrm{val}}$ (Thm.~\ref{thm:noiseless}(i)).
+    To our knowledge this is the first convergence result for CBBA under slotted medium access with explicit belief expiry.
+    \item \textbf{Single-task consensus and a conditional optimality statement (Prop.~\ref{prop:optimality}).}
+    Under bounded communication delay with monotonically merged ledgers, we prove convergence to a conflict-free assignment and state precisely under what conditions the resulting utility can be compared against the optimal fixed-score assignment; no unconditional $50\%$ guarantee is claimed for the implemented single-task variant.
+    \item \textbf{A synchronization--staleness phase transition (Sec.~\ref{sec:theory-noiseless}(ii), Thm.~\ref{thm:noiseless}).}
+>>>>>>> 70dfff8 (Step 3: declare single-task bundle-size-one CBBA variant; conditional optimality proposition replaces unconditional 50% claim)
     We prove that when $N\tau > T_{\mathrm{val}}$, belief expiry renders global consensus unreachable, and we validate this impossibility result empirically: trials beyond the transition exhibit consensus rates collapsing toward zero while sub-transition trials converge reliably.
     This yields an actionable design rule---scale the validity horizon with the TDMA frame.
     \item \textbf{An open-source benchmark with rigorous statistics.}
