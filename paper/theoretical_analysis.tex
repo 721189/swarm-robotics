@@ -1,9 +1,9 @@
-\section{Theoretical Analysis}\label{sec:theory}
+﻿\section{Theoretical Analysis}\label{sec:theory}
 
 This section develops the paper's formal guarantees under a communication model that is honest about stochastic loss.
 Section~\ref{sec:theory-age} defines the \emph{belief-age process}---the exact quantity whose interplay with scheduling produces both the guarantees and the failure mode.
 Sections~\ref{sec:theory-noiseless}--\ref{sec:theory-stoch} then state what does and does not survive: consensus definitions made precise, a deterministic guarantee in the noiseless regime, and an exact stochastic reliability bound that invokes no independence assumptions between overlapping loss windows.
-Section~\ref{sec:theory-worst} treats optimality under explicitly frozen scores, and Section~\ref{sec:theory-complexity} analyzes complexity.
+Section~\ref{sec:theory-complexity} analyzes complexity.
 
 Throughout, $q = (1-p_{\mathrm{tx}})(1-p_{\mathrm{rx}})$ denotes the per-frame end-to-end delivery success probability on a link, and all probabilistic statements are with respect to the independent loss process of Sec.~\ref{sec:comm-model}.
 
@@ -80,11 +80,11 @@ where $\mathcal{M}_i(t)$ is $d_i$'s mailbox of non-expired messages. Consequentl
 \end{lemma}
 
 \begin{proof}
-The receive handler adopts a sender's bid if and only if it is strictly larger than the local entry, and otherwise leaves the local entry unchanged (Sec.~\ref{sec:method-belief}); winner indices travel with the adopted bid, so the stored pair $(\mathrm{winner}, \mathrm{bid})$ changes only out of a strictly smaller stored bid. Because scores are constant throughout the episode (Sec.~\ref{sec:theory-worst}), a larger received value can be overwritten only upward, never downward, whenever no pruning event removes it. Repeated application over the sequence of decoded messages yields exactly the running maximum of Eq.~\eqref{eq:monotone-merge}.
+The receive handler adopts a sender's bid if and only if it is strictly larger than the local entry, and otherwise leaves the local entry unchanged (Sec.~\ref{sec:method-belief}); winner indices travel with the adopted bid, so the stored pair $(\mathrm{winner}, \mathrm{bid})$ changes only out of a strictly smaller stored bid. Because scores are constant throughout the episode (the frozen-score setting of Prop.~\ref{prop:optimality}), a larger received value can be overwritten only upward, never downward, whenever no pruning event removes it. Repeated application over the sequence of decoded messages yields exactly the running maximum of Eq.~\eqref{eq:monotone-merge}.
 \end{proof}
 
 \begin{theorem}[Noiseless scheduling regimes]\label{thm:noiseless}
-Suppose $p_{\mathrm{tx}} = p_{\mathrm{rx}} = 0$ (lossless TDMA), so every belief refreshes exactly once per frame period $N\tau$, and let scores be frozen for the episode (Sec.~\ref{sec:theory-worst}). Then:
+Suppose $p_{\mathrm{tx}} = p_{\mathrm{rx}} = 0$ (lossless TDMA), so every belief refreshes exactly once per frame period $N\tau$, and let scores be frozen for the episode (the frozen-score setting of Prop.~\ref{prop:optimality}). Then:
 \begin{enumerate}
     \item[(i)] \textbf{(Feasible regime, $\Lambda \geq 0$.)}
     If $N\tau \leq T_{\mathrm{val}}$, TDMA's round-robin gossip delivers, per round, exactly ideal CBBA's message set up to intra-round ordering; ledgers are monotone because pruning never fires (no packet age exceeds $N\tau \leq T_{\mathrm{val}}$).

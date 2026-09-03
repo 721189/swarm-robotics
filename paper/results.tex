@@ -1,6 +1,6 @@
 \section{Results}\label{sec:results}
 
-We report results from the released corpus of $4{,}860$ TDMA-CBBA trials ($324$ configurations, $15$ independent seeds each; Sec.~\ref{sec:test-matrix}) together with the four-baseline ablation sweep ($150$ runs) and the communication--motion isolation ablation of Sec.~\ref{sec:setup-ablation}.
+We report results from the released corpus of $4{,}860$ TDMA-CBBA trials ($324$ configurations, $15$ independent seeds each; Sec.~\ref{sec:test-matrix}) together with the four-baseline ablation sweep ($900$ runs) and the communication--motion isolation ablation of Sec.~\ref{sec:setup-ablation}.
 All figures are generated directly from raw CSV by the open-source analysis pipeline; no manual curation is involved.
 
 \subsection{Headline Statistics}
@@ -15,12 +15,12 @@ Every metric rejects normality (Shapiro--Wilk, all $p < 10^{-4}$, $n = 4860$), j
 \toprule
 Metric & Mean $\pm$ SEM & 95\% CI \\
 \midrule
-MTC (s) & $31.54 \pm 0.31$ & $[30.94,\ 32.14]$ \\
-SCI     & $0.479 \pm 0.001$ & $[0.477,\ 0.482]$ \\
-CE      & $0.767 \pm 0.005$ & $[0.758,\ 0.776]$ \\
-PDR     & $0.938 \pm 0.001$ & $[0.936,\ 0.940]$ \\
+MTC (s) & $21.57 \pm 0.315$ & $[20.95,\ 22.21]$ \\
+SCI     & $0.577 \pm 0.002$ & $[0.574,\ 0.581]$ \\
+CE      & $0.644 \pm 0.004$ & $[0.636,\ 0.652]$ \\
+PDR     & $0.827 \pm 0.002$ & $[0.823,\ 0.832]$ \\
 \midrule
-Convergence rate & $45.8\%$ & --- \\
+Convergence rate & $65.1\%$ & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -50,7 +50,14 @@ The convergence CDF (Fig.~\ref{fig:convergence_curve}) makes this bimodality exp
 
 \subsection{Packet Delivery Ratio}\label{sec:results-pdr}
 Fig.~\ref{fig:pdr_vs_pl} shows PDR degrading gracefully with nominal transmit-leg loss.
-The observed per-link delivery ratios ($0.975$, $0.924$, $0.849$ at $5\%$, $15\%$, $30\%$ loss) track the receiver-leg success probability $1 - p_{\mathrm{rx}}$ rather than the joint $(1-p_{\mathrm{tx}})(1-p_{\mathrm{rx}})$: because only the scheduled speaker transmits each frame and most slots deliver, deliveries concentrate in the majority of frames while losses accumulate uniformly over offered links. The closed-form per-link model is validated against the released telemetry in \texttt{benchmark/results/figures/pdr\_model\_check.txt}; the narrow within-loss standard errors ($< 0.01$) confirm the channel model is the dominant, essentially deterministic determinant of PDR.
+The observed per-link delivery ratios track the joint end-to-end
+success probability $(1-p_{\mathrm{tx}})(1-p_{\mathrm{rx}})$ predicted
+by the two-stage model of Sec.~\ref{sec:method-loss}: with the revised
+offered-link accounting (which counts every scheduled sender--receiver
+opportunity including transmit-side failures) the measured ratios
+($0.927$, $0.787$, $0.594$ at $5\%$, $15\%$, $30\%$ loss) agree with
+the closed-form estimand to within $10^{-3}$ (see
+\texttt{pdr\_model\_check.txt}).
 
 \begin{figure}[htbp]
 \centering
@@ -70,8 +77,8 @@ The heatmap (Fig.~\ref{fig:heatmap}) locates the phase transition of Theorem~\re
 \end{figure}
 
 \subsection{Censoring-Aware Survival Analysis}\label{sec:results-survival}
-Because consensus is not observed in $54.2\%$ of trials, we treat time-to-consensus as right-censored survival data rather than a numerical scalar.
-Fig.~\ref{fig:survival} shows Kaplan--Meier survivor curves per baseline: ideal and loss-only open-channel swarms converge almost immediately (median $0.2$--$0.4$\,s), TDMA-only converges with a heavy tail (median $12.3$\,s, $87\%$ within horizon), while TDMA-with-loss retains only a $50\%$ convergence fraction, its survivor curve never reaching the baseline---the signature of the structural phase transition rather than a slow-but-certain process. Pairwise log-rank tests and a TDMA-only Cox proportional-hazards fit (staleness ratio and packet loss as covariates, robust standard errors) supplement the curves (Sec.~\ref{sec:setup-stats}); full outputs are in \texttt{survival\_analysis.txt}.
+Because consensus is not observed in $34.9\%$ of trials, we treat time-to-consensus as right-censored survival data rather than a numerical scalar.
+Fig.~\ref{fig:survival} shows Kaplan--Meier survivor curves per baseline: ideal and loss-only open-channel swarms converge almost immediately (median $0.2$--$0.4$\,s), TDMA-only converges with a moderate tail (median $3.3$\,s), while TDMA-with-loss retains a $64.9\%$ convergence fraction (median $6.4$\,s), its survivor curve never reaching the baseline---the signature of the structural phase transition rather than a slow-but-certain process. Pairwise log-rank tests and a TDMA-only Cox proportional-hazards fit (staleness ratio and packet loss as covariates, robust standard errors) supplement the curves (Sec.~\ref{sec:setup-stats}); full outputs are in \texttt{survival\_analysis.txt}.
 
 \begin{figure}[htbp]
 \centering
@@ -83,7 +90,9 @@ Fig.~\ref{fig:survival} shows Kaplan--Meier survivor curves per baseline: ideal 
 \subsection{Factorial Regression and Ablation Evidence}\label{sec:results-regression}
 Within TDMA conditions we use regression as a descriptive mechanism analysis rather than a causal estimator (Eq.~\eqref{eq:regression}, Sec.~\ref{sec:setup-stats}): the staleness ratio $\rho = N\tau/T_{\mathrm{val}}$ and the packet-loss rate are treated as controlled experimental factors, and HC3 robust standard errors are reported. The estimated interaction $\beta_3$ between $\rho$ and $p_{\mathrm{tx}}$ is consistent with the joint scheduling-and-loss mechanism of Thm.~\ref{thm:noiseless}(ii); full coefficient tables are in \texttt{regression\_analysis.txt}.
 
-Table~\ref{tab:ablation} summarizes the four-baseline sweep, which refines the causal decomposition of Sec.~\ref{sec:baselines}: moving from ideal (MTC $0.33$\,s) to TDMA-only raises MTC to $18.2$\,s and drops convergence to $87\%$; adding loss pushes TDMA further to $31.1$\,s / $50\%$. Crucially, open-channel loss-only converges $100\%$ at every loss level---fresh every-frame broadcasting defeats information expiry, isolating belief staleness as the mechanism that breaks TDMA operation.
+Table~\ref{tab:ablation} summarizes the four-baseline sweep, which refines the causal decomposition of Sec.~\ref{sec:baselines}: moving from ideal (MTC $0.34$\,s) to TDMA-only raises MTC to
+$3.46$\,s (converging $100\%$); adding loss pushes TDMA to $22.4$\,s
+/ $61.4\%$. Crucially, open-channel loss-only converges $100\%$ at every loss level---fresh every-frame broadcasting defeats information expiry, isolating belief staleness as the mechanism that breaks TDMA operation.
 
 \begin{table}[htbp]
 \centering
@@ -93,10 +102,10 @@ Table~\ref{tab:ablation} summarizes the four-baseline sweep, which refines the c
 \toprule
 Baseline & MTC (s) & Convergence & PDR \\
 \midrule
-Ideal CBBA            & $0.33$ & $100\%$   & $1.000$ \\
-Loss-only (open ch.)  & $0.54$ & $100\%$   & $0.938$ \\
-TDMA-only             & $18.2$ & $87\%$    & $1.000$ \\
-TDMA-CBBA (proposed)  & $31.1$ & $50\%$    & $0.938$ \\
+Ideal CBBA            & $0.34$ & $100\%$   & $1.000$ \\
+Loss-only (open ch.)  & $0.47$ & $100\%$   & $0.829$ \\
+TDMA-only             & $3.46$ & $100\%$   & $1.000$ \\
+TDMA-CBBA (proposed)  & $22.4$ & $61.4\%$  & $0.828$ \\
 \bottomrule
 \end{tabular}
 \end{table}
