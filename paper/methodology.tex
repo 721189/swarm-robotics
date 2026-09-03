@@ -50,9 +50,8 @@ If the adopted winner displaces $i$'s own assignment ($a_i = o_j$ but $\mathcal{
 
 Because merges are monotone in bid value and winner entries travel with bids, this update rule is exactly the max-consensus of CBBA~\cite{choi2009}; Lemma~\ref{lem:monotone} formalizes the property driving our convergence proofs.
 \subsection{Phase II: Motion Control}
-Between auctions, drones execute a potential-field controller: attraction toward the assigned objective, repulsion from SAM threat zones via Eq.~\eqref{eq:threat-potential}, and Reynolds-style separation from neighbors within $4$\,m---where neighbors are drawn from the perceived swarm $\mathcal{P}_i$ under TDMA (strictly local information), or from ground truth under the open-channel baselines.
-This asymmetry is deliberate: it makes motion itself sensitive to communication quality, so that SCI responds to both physical flocking and informational coupling.
-Because this couples two distinct mechanisms (auction communication and motion-state estimation), we additionally run the allocation-only ablation of Sec.~\ref{sec:setup-ablation}, in which motion is disabled for all baselines, to isolate the contribution of the communication layer to the measured MTC differences.
+Between auctions, drones execute a potential-field controller toward assigned objectives, away from SAM threats (Eq.~\eqref{eq:threat-potential}), and with Reynolds-style separation from neighbors within $4$\,m drawn from the perceived swarm $\mathcal{P}_i$ under TDMA.
+An allocation-only ablation (Sec.~\ref{sec:setup-ablation}) with motion disabled confirms that MTC ordering across baselines is driven by the communication layer.
 
 \subsection{Slotted Medium Access}\label{sec:method-slotted}
 Under TDMA, exactly one agent broadcasts per scheduling opportunity, eliminating intra-frame collisions by construction.
@@ -72,21 +71,5 @@ Each mailbox entry carries its receive timestamp; entries older than $T_{\mathrm
 Belief expiry serves two purposes: it bounds mailbox memory, and it implements graceful degradation under agent attrition (departed agents stop transmitting and are forgotten within $T_{\mathrm{val}}$).
 Its interaction with TDMA scheduling is the central object of Section~\ref{sec:theory}: expiry converts bounded delay into bounded \emph{belief age}, and consensus survives only while worst-case belief age stays below the horizon.
 \subsection{Dynamic TDMA (D-TDMA) Extension}\label{sec:dtdma}
-Fixed slot lengths waste capacity on quiet agents and starve safety-critical ones.
-We therefore extend the scheduler with demand-driven slot doubling:
-
-\begin{enumerate}
-    \item Each drone continuously evaluates the proximity predicate
-    \begin{equation}
-        \phi_i = \Big( \min_l d(\mathbf{p}_i, \mathbf{x}_l) < r_l + 5\,\mathrm{m} \Big)
-        \ \lor\
-        \Big( \min_j d(\mathbf{p}_i, \mathbf{q}_j) < 20\,\mathrm{m} \Big),
-        \label{eq:dtdma-predicate}
-    \end{equation}
-    i.e., the drone is near a threat or approaching an objective.
-    \item If $\phi_i$ holds, the drone raises a double-slot request flag addressed to the scheduler.
-    \item When the drone's next scheduled slot begins, the scheduler grants a doubled slot of length $2\tau$, then clears the flag.
-    \item Grants are non-preemptive and preserve round-robin order: at most one doubling occurs per visit, slot order is never permuted, so the frame remains collision-free and the analysis of Section~\ref{sec:theory} carries over with effective cycle time bounded by $2N\tau$.
-\end{enumerate}
-
-D-TDMA thus adds an adaptive, safety-aware layer on top of deterministic medium access: contested agents obtain up to twice the telemetry bandwidth exactly when their state estimates matter most (threat evasion, terminal approach), while Theorems~\ref{thm:convergence} and~\ref{thm:worstcase} remain valid under the relaxed condition $2N\tau \leq T_{\mathrm{val}}$.
+We optionally extend the scheduler with demand-driven slot doubling when an agent is near a threat or objective; grants are non-preemptive and preserve round-robin order.
+D-TDMA is implemented in the released codebase but excluded from the theoretical claims and benchmark matrix of this paper (Sec.~\ref{sec:discussion}).

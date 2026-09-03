@@ -8,8 +8,7 @@ The environment is a $100 \times 100$\,m square workspace $\mathcal{W}$ with ref
 Drones are homogeneous combat agents ($v_{\max} = 1.5$\,m/s, steering limit $0.2$, communication--sensing radius $25$\,m) integrated at $\Delta t = 0.1$\,s for a mission horizon of $F_{\max} = 500$ frames (50\,s).
 Objectives are placed uniformly at random in the central region $[15, 85]^2$; SAM threats (radius $15$\,m, strength $60$) are placed uniformly in $[20, 80]^2$.
 Belief validity is fixed at $T_{\mathrm{val}} = 2.0$\,s throughout, so by Theorem~\ref{thm:impossibility} the predicted staleness threshold sits at swarm sizes where $N\tau > 2$\,s---a regime our matrix deliberately spans.
-
-We emphasize that the radio layer is a \emph{communication-abstraction model}, not a physical-channel simulation: it captures the statistically salient features of real tactical links---slotted medium access, independent stochastic transmit/receive loss---while abstracting away physical-layer effects (fading, multipath, bandwidth, propagation delay, queueing, and MAC contention beyond the TDMA schedule) whose detailed modeling is standard but orthogonal to the scheduling--staleness question at hand.
+The radio layer is a communication-abstraction model (slotted access, stochastic loss), not a physical-channel simulation.
 
 \subsection{Test Matrix}\label{sec:test-matrix}
 The released benchmark varies five factors:
@@ -65,23 +64,14 @@ Four channel models isolate each design decision:
 Comparisons against all four baselines follow the protocol of Sec.~\ref{sec:test-matrix}; headline statistics in Sec.~\ref{sec:results} are reported on the released TDMA-CBBA corpus.
 
 \subsection{Statistical Methodology}\label{sec:setup-stats}
-We make the statistical unit explicit throughout. Each \emph{configuration} fixes one combination of the five factors (Section~\ref{sec:test-matrix}); each configuration is instantiated over $t = 15$ \emph{independent seeds}. The independent observation is the seed-level trial; aggregate figures across configurations are descriptive, not additional replication. Distinguishing \emph{runs} ($4{,}860$), \emph{seeds} ($15$ per configuration), and \emph{conditions} ($324$) is essential to avoid inflating apparent sample size.
-
-All metrics reject normality (Shapiro--Wilk, Sec.~\ref{sec:results}); we therefore:
-(i) report means with bias-corrected bootstrap 95\% confidence intervals ($10{,}000$ resamples);
-(ii) use Kruskal--Wallis $H$ tests with Dunn--Bonferroni post-hoc comparisons for between-baseline contrasts rather than parametric ANOVA;
-(iii) model the factorial structure explicitly. Specifically, we fit an OLS regression of MTC on the controlled factors and their interactions,
+Each configuration (Sec.~\ref{sec:test-matrix}) is instantiated over $t = 15$ independent seeds; aggregate figures across $324$ conditions are descriptive.
+All metrics reject normality (Shapiro--Wilk, Sec.~\ref{sec:results}); we report bootstrap 95\% CIs, Kruskal--Wallis contrasts, and fit the OLS factorial regression
 \begin{equation}
-\begin{aligned}
-\mathrm{MTC} \;=\; & \beta_0 + \beta_1 N + \beta_2 \tau + \beta_3 p_{\mathrm{tx}} + \beta_4 N\,\tau \\
-& + \beta_5 N\,p_{\mathrm{tx}} + \beta_6 \tau\,p_{\mathrm{tx}} + \beta_7 \underbrace{\tfrac{N\tau}{T_{\mathrm{val}}}}_{\text{staleness ratio}} + \varepsilon,
-\label{eq:regression}
-\end{aligned}
+    \widehat{\mathrm{MTC}} = \beta_0 + \beta_1 N + \beta_2 p_{\mathrm{tx}} + \beta_3 \tau + \beta_4 M + \beta_5 (N{\cdot}p_{\mathrm{tx}}) + \beta_6 (p_{\mathrm{tx}}{\cdot}\tau) + \beta_7 \frac{N\tau}{T_{\mathrm{val}}}
+    \label{eq:regression}
 \end{equation}
-with HC3 robust standard errors. The interaction coefficients $\beta_4$ (scheduling delay), $\beta_5$ (scheduling--loss coupling), and $\beta_7$ (staleness ratio) isolate the causal mechanism rather than relying on raw marginal correlations.
-
-Censored MTC ($\mathrm{MTC} = 50$\,s when consensus is never observed) is treated as right-censored time-to-event data, not as a numerical outcome: we report Kaplan--Meier survivor curves for time to consensus, median convergence times with 95\% confidence intervals, and a Cox proportional-hazards regression to quantify how the factor levels modify the hazard of convergence. This avoids treating ``no consensus within the horizon'' as if consensus occurred exactly at 50\,s.
+with HC3 robust standard errors.
+Censored MTC is treated as right-censored survival data (Kaplan--Meier curves, Cox regression), not as a numerical outcome at the horizon cap.
 
 \subsection{Communication--Motion Isolation Ablation}\label{sec:setup-ablation}
-To attribute measured differences to the communication layer rather than to motion-control staleness, we run an additional \emph{allocation-only} ablation in which agents are frozen in place (motion disabled) while all four channel models are evaluated. Comparing MTC differences under static versus dynamic motion isolates the portion of any degradation caused by auction communication from that caused by stale flocking/collision information.
-% placeholder
+We additionally run an allocation-only ablation with motion disabled to isolate communication-layer effects on MTC.

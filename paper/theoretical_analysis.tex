@@ -154,7 +154,10 @@ Because agents move while auctions run, scores are time-varying, and we are care
 \begin{proposition}[Optimality for frozen score profiles]\label{prop:optimality}
 Fix an auction episode and let $c^{\circ}_{ij}$ denote the score profile at episode start, held fixed (frozen) for the duration of the episode; let $\mathcal{U}^{\ast}_{\circ}$ be the optimal conflict-free utility under $c^{\circ}$ and $\mathcal{U}$ the realized utility at TDMA-CBBA termination within that episode, measured under the same frozen profile.
 If the episode is expiry-free (Def.~\ref{def:episode}) and scores satisfy DMG, then
-$\mathcal{U} \geq 0.5\,\mathcal{U}^{\ast}_{\circ}$.
+\begin{equation}
+    \mathcal{U} \geq 0.5\,\mathcal{U}^{\ast}_{\circ}.
+    \label{eq:optimality-bound}
+\end{equation}
 \end{proposition}
 
 \begin{proof}
@@ -192,7 +195,4 @@ Update rate [pkts/s] & $1/\Delta t$ & $(1-p_{\mathrm{tx}})/(N\tau)$ \\
 \end{tabular}
 \end{table}
 
-Three observations follow.
-First, computational cost per round is unchanged by TDMA; belief filtering adds only $O(n)$ per tick.
-Second, communication volume per agent drops from $O(n)$ point-to-point syncs to at most one broadcast per frame.
-Third, the price of slotted access is purely temporal---wall-clock per round inflates to $N\tau$, exactly the additive term of Theorem~\ref{thm:noiseless}---and loss compounds it by reducing the update rate $(1-p_{\mathrm{tx}})/(N\tau)$, which is precisely what inflates gaps toward the expiry threshold of Definition~\ref{def:immunity}.
+TDMA adds $O(n)$ belief filtering per tick but leaves auction compute at $O(m)$; per-agent communication drops to one broadcast per frame while wall-clock per round inflates to $N\tau$---the scheduling-delay term in Theorem~\ref{thm:noiseless}.
