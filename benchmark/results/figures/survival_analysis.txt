@@ -1,10 +1,33 @@
 === SURVIVAL ANALYSIS ===
 
-ideal_omni: conv=15/15 (100%) med=0.20s
-  survival@10s=0.000 @30s=0.000
-no_tdma_packet_loss: conv=60/60 (100%) med=0.40s
-  survival@10s=0.000 @30s=0.000
-tdma_clean: conv=13/15 (87%) med=12.30s
-  survival@10s=0.600 @30s=0.200
-tdma_packet_loss: conv=30/60 (50%) med=infs
-  survival@10s=0.717 @30s=0.567
+fine_sweep: events=63/90 (70.0%), median=6.900s
+  S(10s)=0.4556, S(30s)=0.3111
+ideal_omni: events=24/24 (100.0%), median=0.300s
+  S(10s)=0.0000, S(30s)=0.0000
+no_tdma_packet_loss: events=96/96 (100.0%), median=0.400s
+  S(10s)=0.0000, S(30s)=0.0000
+tdma_clean: events=21/24 (87.5%), median=10.700s
+  S(10s)=0.5833, S(30s)=0.1667
+tdma_packet_loss: events=3030/6576 (46.1%), median=inf
+  S(10s)=0.6632, S(30s)=0.5803
+
+Pairwise log-rank tests:
+  fine_sweep vs ideal_omni: p=7.55565e-39
+  fine_sweep vs no_tdma_packet_loss: p=4.64398e-49
+  fine_sweep vs tdma_clean: p=0.300215
+  fine_sweep vs tdma_packet_loss: p=1.47123e-06
+  ideal_omni vs no_tdma_packet_loss: p=0.0102961
+  ideal_omni vs tdma_clean: p=1.36807e-13
+  ideal_omni vs tdma_packet_loss: p=0
+  no_tdma_packet_loss vs tdma_clean: p=1.24549e-18
+  no_tdma_packet_loss vs tdma_packet_loss: p=0
+  tdma_clean vs tdma_packet_loss: p=4.24792e-05
+
+=== COX PH: TDMA CONDITIONS ===
+                     coef  exp(coef)              p
+covariate                                          
+staleness_ratio -2.056709   0.127874  1.563765e-176
+packet_loss     -5.917979   0.002691  3.331446e-250
+
+Interpretation: exp(coef) > 1 increases the instantaneous convergence hazard.
+PH assumption diagnostic: completed (no output means no violations flagged).

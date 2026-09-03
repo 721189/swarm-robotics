@@ -1,5 +1,8 @@
 === PDR MODEL VALIDATION ===
 
-p_tx=0.05: joint=0.9262 rx=0.9750 obs_w=0.9764 matchA=NO
-p_tx=0.15: joint=0.7863 rx=0.9250 obs_w=0.9262 matchA=NO
-p_tx=0.30: joint=0.5950 rx=0.8500 obs_w=0.8501 matchA=NO
+Estimand: end-to-end q = (1-p_tx)(1-p_rx) over scheduled sender->receiver opportunities
+(TX-side failure is part of the offered-link count)
+
+p_tx=0.05: expected_end_to_end=0.9262 observed=0.9758 error=0.0496
+p_tx=0.15: expected_end_to_end=0.7863 observed=0.9258 error=0.1396
+p_tx=0.30: expected_end_to_end=0.5950 observed=0.8509 error=0.2559

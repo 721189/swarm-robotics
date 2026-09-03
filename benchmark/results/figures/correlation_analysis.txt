@@ -2,23 +2,23 @@
 
 Pearson:
                swarm_size  packet_loss  slot_duration    mtc    sci    pdr
-swarm_size          1.000       -0.000            NaN  0.390  0.249  0.008
-packet_loss        -0.000        1.000            NaN  0.187 -0.324 -0.995
-slot_duration         NaN          NaN            NaN    NaN    NaN    NaN
-mtc                 0.390        0.187            NaN  1.000 -0.120 -0.182
-sci                 0.249       -0.324            NaN -0.120  1.000  0.320
-pdr                 0.008       -0.995            NaN -0.182  0.320  1.000
+swarm_size          1.000        0.003         -0.011  0.709 -0.083  0.004
+packet_loss         0.003        1.000         -0.006  0.310 -0.304 -0.995
+slot_duration      -0.011       -0.006          1.000 -0.001  0.002  0.006
+mtc                 0.709        0.310         -0.001  1.000 -0.340 -0.299
+sci                -0.083       -0.304          0.002 -0.340  1.000  0.303
+pdr                 0.004       -0.995          0.006 -0.299  0.303  1.000
 
 Spearman:
                swarm_size  packet_loss  slot_duration    mtc    sci    pdr
-swarm_size          1.000        0.000            NaN  0.165  0.238 -0.027
-packet_loss         0.000        1.000            NaN  0.238 -0.336 -0.987
-slot_duration         NaN          NaN            NaN    NaN    NaN    NaN
-mtc                 0.165        0.238            NaN  1.000 -0.120 -0.246
-sci                 0.238       -0.336            NaN -0.120  1.000  0.333
-pdr                -0.027       -0.987            NaN -0.246  0.333  1.000
+swarm_size          1.000        0.003         -0.009  0.703 -0.103 -0.010
+packet_loss         0.003        1.000         -0.007  0.361 -0.298 -0.976
+slot_duration      -0.009       -0.007          1.000 -0.006  0.007  0.007
+mtc                 0.703        0.361         -0.006  1.000 -0.302 -0.351
+sci                -0.103       -0.298          0.007 -0.302  1.000  0.297
+pdr                -0.010       -0.976          0.007 -0.351  0.297  1.000
 
-swarm_size vs mtc: r=0.390 p=0.0000
-swarm_size vs pdr: r=0.008 p=0.9256
-packet_loss vs mtc: r=0.187 p=0.0216
+swarm_size vs mtc: r=0.709 p=0.0000
+swarm_size vs pdr: r=0.004 p=0.7517
+packet_loss vs mtc: r=0.310 p=0.0000
 packet_loss vs pdr: r=-0.995 p=0.0000

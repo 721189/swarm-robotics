@@ -1,51 +1,37 @@
-=== FACTORIAL REGRESSION ===
+=== FACTORIAL / MECHANISM REGRESSION ===
+
+n observations : 6690
+covariance     : HC3 (heteroskedasticity-robust)
 
                             OLS Regression Results                            
 ==============================================================================
-Dep. Variable:                    mtc   R-squared:                       0.854
-Model:                            OLS   Adj. R-squared:                  0.848
-Method:                 Least Squares   F-statistic:                     140.0
-Date:                Tue, 25 Aug 2026   Prob (F-statistic):           2.73e-57
-Time:                        13:12:32   Log-Likelihood:                -518.95
-No. Observations:                 150   AIC:                             1052.
-Df Residuals:                     143   BIC:                             1073.
-Df Model:                           6                                         
-Covariance Type:            nonrobust                                         
-==========================================================================================
-                             coef    std err          t      P>|t|      [0.025      0.975]
-------------------------------------------------------------------------------------------
-Intercept                  0.3575      2.310      0.155      0.877      -4.209       4.924
-swarm_size                -0.0012      0.066     -0.018      0.986      -0.131       0.128
-packet_loss                1.9417     13.087      0.148      0.882     -23.927      27.811
-use_tdma                  -7.3220      2.920     -2.508      0.013     -13.093      -1.551
-swarm_size:packet_loss    -0.0071      0.346     -0.021      0.984      -0.690       0.676
-swarm_size:use_tdma        0.9683      0.079     12.284      0.000       0.812       1.124
-packet_loss:use_tdma      62.8769     11.290      5.569      0.000      40.561      85.193
-n_tau                  -2.969e-05      0.002     -0.018      0.986      -0.003       0.003
+Dep. Variable:                    mtc   R-squared:                       0.335
+Model:                            OLS   Adj. R-squared:                  0.334
+Method:                 Least Squares   F-statistic:                     1876.
+Date:                Thu, 03 Sep 2026   Prob (F-statistic):               0.00
+Time:                        18:17:11   Log-Likelihood:                -28624.
+No. Observations:                6690   AIC:                         5.726e+04
+Df Residuals:                    6686   BIC:                         5.728e+04
+Df Model:                           3                                         
+Covariance Type:                  HC3                                         
+===============================================================================================
+                                  coef    std err          z      P>|z|      [0.025      0.975]
+-----------------------------------------------------------------------------------------------
+Intercept                      10.4222      0.493     21.138      0.000       9.456      11.389
+staleness_ratio                15.5211      0.433     35.865      0.000      14.673      16.369
+packet_loss                    64.3138      2.999     21.443      0.000      58.435      70.192
+staleness_ratio:packet_loss    -6.4202      2.478     -2.591      0.010     -11.277      -1.563
 ==============================================================================
-Omnibus:                       17.640   Durbin-Watson:                   0.790
-Prob(Omnibus):                  0.000   Jarque-Bera (JB):               36.889
-Skew:                           0.492   Prob(JB):                     9.76e-09
-Kurtosis:                       5.221   Cond. No.                     3.11e+17
+Omnibus:                     3415.833   Durbin-Watson:                   0.357
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):              364.190
+Skew:                           0.072   Prob(JB):                     8.26e-80
+Kurtosis:                       1.866   Cond. No.                         25.3
 ==============================================================================
 
 Notes:
-[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
-[2] The smallest eigenvalue is 2.39e-30. This might indicate that there are
-strong multicollinearity problems or that the design matrix is singular.
+[1] Standard Errors are heteroscedasticity robust (HC3)
 
-                              sum_sq     df           F        PR(>F)
-swarm_size               9302.602500    1.0  149.715820  5.271205e-24
-packet_loss              2145.054167    1.0   34.522441  2.833818e-08
-use_tdma                29430.808067    1.0  473.658589  3.149397e-47
-swarm_size:packet_loss      0.026327    1.0    0.000424  9.836061e-01
-swarm_size:use_tdma      9376.048900    1.0  150.897865  3.944185e-24
-packet_loss:use_tdma     1927.334885    1.0   31.018473  1.227707e-07
-n_tau                       0.020402    1.0    0.000328  9.855681e-01
-Residual                 8885.314555  143.0         NaN           NaN
-
-Key interactions:
-  swarm_size:packet_loss: coef=-0.0071 p=0.9836
-  swarm_size:use_tdma: coef=0.9683 p=0.0000
-  packet_loss:use_tdma: coef=62.8769 p=0.0000
-  n_tau: coef=-0.0000 p=0.9856
+Mechanism coefficients:
+  staleness_ratio: coef=15.521104, p=1.07236e-281
+  packet_loss: coef=64.313767, p=5.25323e-102
+  staleness_ratio:packet_loss: coef=-6.420242, p=0.00957754
