@@ -1,0 +1,3 @@
+%% Auto-edits by Copilot: rename theorem labels, add def:eventual, replace missing lem:frame ref
+% Commit message: Fix LaTeX crossrefs: rename theorem labels, add def:eventual, replace missing lem:frame ref
+
