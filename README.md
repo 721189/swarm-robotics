@@ -12,7 +12,7 @@ Link to live demo https://swarm-robotics-cufdk4uidsgg22595mggw3.streamlit.app/
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Streamlit](https://img.shields.io/badge/Streamlit-Live-red.svg)](https://swarm-robotics.streamlit.app/)
 
- A Python-based multi-agent simulation exploring how complex collective intelligence emerges from simple, local interactions — inspired by biological systems like ant colonies, bird flocking, and drone swarms.
+ A Python-based multi-agent simulation exploring how complex collective intelligence emerges from simple, local interactions — inspired by biological systems like ant colonies, bird flocking, and drone swarms. This is the companion codebase for the paper *"TDMA-CBBA: Communication-Constrained Task Allocation for Drone Swarms with Provable Convergence Guarantees"* (see `paper/`).
 
 **Built from scratch by Shivam Singh, starting from zero Python knowledge.**
 
@@ -20,15 +20,15 @@ Link to live demo https://swarm-robotics-cufdk4uidsgg22595mggw3.streamlit.app/
 
 ## 🎯 What This Project Does
 
-Simulates a swarm of 30 autonomous robots that:
+Simulates a swarm of 10–50 autonomous robots that:
 
 - Move independently with battery tracking
 - Sense nearby neighbors using Euclidean distance
 - Make decisions based only on local information (no central controller)
 - Self-organize using **Reynolds Rules**: Cohesion, Separation, Alignment
 - Partition space using **Voronoi tessellation** for zero-overlap coverage
-- **Allocate tasks using CBBA** (Consensus-Based Bundle Algorithm)
-- **Communicate via realistic TDMA radio** with packet loss and drone failure recovery
+- **Allocate tasks using a single-task CBBA variant** (bundle-size-one Consensus-Based Bundle Algorithm)
+- **Communicate via an event-driven TDMA scheduler** with sub-DT slot fidelity, two-stage packet loss, and drone failure recovery
 
 ---
 
@@ -47,6 +47,10 @@ Simulates a swarm of 30 autonomous robots that:
 | **Live Metrics** | Consensus convergence time, tasks completed, fleet status |
 | **3D Plotly Visualization** | Optional 3D view of swarm with depth = task state |
 | **Dockerized** | Fully containerized with `Dockerfile` and `docker-compose.yml` |
+| **Event-Driven TDMA** | Sub-DT slot fidelity — multiple radio slots per physics step |
+| **Two-Stage Packet Loss** | Independent TX + RX failure stages with end-to-end PDR |
+| **Statistical Analysis** | Kaplan-Meier, Cox PH, log-rank tests, HC3 regression |
+| **Open-Source Benchmark** | 4,860 runs across 324 configurations, fully deterministic |
 
 ---
 
@@ -149,18 +153,35 @@ swarm-robotics/
 │       └── config.py             # YAML config parsing
 ├── tests/
 │   ├── test_framework.py         # 12 core tests
-│   └── test_tdma.py              # 5 TDMA + D-TDMA + Ghost Drone tests
+│   ├── test_tdma.py              # 5 TDMA + D-TDMA + Ghost Drone tests
+│   └── test_phase45_fixes.py     # 6 scheduler + consensus-semantics tests
+├── benchmark/
+│   ├── runners/
+│   │   ├── headless_runner.py    # Main benchmark matrix (324 configs)
+│   │   └── baseline_runner.py    # Four-baseline ablation sweep
+│   ├── analyzers/
+│   │   ├── full_analysis.py      # KM/Cox/regression + all figures
+│   │   ├── stat_analyzer.py      # Normality, effect sizes
+│   │   ├── visualizer.py         # Figure generation
+│   │   └── stat_runner.py        # CLI entry for analysis
+│   └── results/                  # Generated CSVs + reports
+├── paper/
+│   ├── main.tex                  # Paper root (IEEEtran)
+│   ├── *.tex                     # 8 section files
+│   └── figures/                  # Generated figures
+├── _fine_sweep.py                # Phase-transition experiment (30 seeds)
 ├── streamlit_app.py              # Main Streamlit UI (Boids)
 ├── streamlit_cbba_demo.py        # CBBA + TDMA A/B testing UI (292 LOC)
 ├── run_framework.py              # CLI entry point
 ├── requirements.txt              # Python dependencies
+├── requirements-paper.txt        # Paper analysis dependencies
 ├── Dockerfile                    # Container build instructions
 ├── docker-compose.yml            # Multi-service orchestration
 └── README.md                     # This file
 ```
 
-**Total LOC:** 3,640 (+1,565 added this week)  
-**Tests:** 17/17 passing (100%)
+**Total LOC:** ~6,500  
+**Tests:** 23/23 passing (100%)
 
 ---
 
@@ -193,6 +214,16 @@ python run_framework.py --algo cbba --headless --csv results/cbba_trial.csv
 docker-compose up --build
 ```
 
+### 5. Reproduce the paper
+```bash
+python -m pip install -r requirements-paper.txt
+python _fine_sweep.py
+python benchmark/runners/baseline_runner.py --trials 30
+python benchmark/runners/headless_runner.py --config reduced --trials 15
+python benchmark/analyzers/full_analysis.py
+```
+All runs are deterministic (base seed 42), so every table and figure can be reproduced from a clean checkout.
+
 ---
 
 ## 🧪 Running Tests
@@ -201,7 +232,7 @@ docker-compose up --build
 pytest tests/ -v
 ```
 
-Expected output: `17 passed in X.X seconds`
+Expected output: `23 passed in X.X seconds`
 
 ---
 
@@ -215,7 +246,10 @@ Expected output: `17 passed in X.X seconds`
 - [x] A/B Testing UI
 - [x] 3D Plotly Visualization
 - [x] Dockerization
-- [x] 17/17 Unit Tests
+- [x] 23/23 Unit Tests
+- [x] Paper: theory, benchmark, and statistical analysis
+- [x] 4,860-run deterministic benchmark corpus
+- [x] Event-driven TDMA scheduler with sub-DT fidelity
 
 **Planned (v3.0):**
 - [ ] **CSMA/CD Protocol:** Carrier-sense multiple access with collision detection.
