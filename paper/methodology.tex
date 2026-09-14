@@ -35,7 +35,7 @@ Algorithm~\ref{alg:tdmacbaa} summarizes one simulation frame; the components rel
 \end{algorithm}
 
 \subsection{Phase I: Single-Task Consensus Auction}\label{sec:method-auction}
-Each drone executes the CBBA phases locally, restricted to its perceived swarm $\mathcal{P}_i$:
+Each drone executes the CBAA phases locally, restricted to its perceived swarm $\mathcal{P}_i$:
 
 \emph{(a) Ghost-drone pruning.}
 Before bidding, drone $i$ removes from its ledger every objective whose believed winner $w \notin \mathcal{P}_i \cup \{i\}$: it resets $\mathcal{B}_i(o_j) \leftarrow 0$ and $\mathcal{W}_i(o_j) \leftarrow \bot$, releasing the allocation.

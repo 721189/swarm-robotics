@@ -7,7 +7,7 @@ First, we gave the question a precise formulation.
 TDMA-CBAA models the swarm's shared channel as slotted medium access with two-stage packet loss and time-stamped beliefs that expire after a validity horizon $T_{\mathrm{val}}$---capturing the collision discipline, stochastic impairment, and forgetting mechanisms found in real deployments, all absent from canonical CBAA.
 
 Second, we answered it theoretically.
-Within the feasibility regime $N\tau \leq T_{\mathrm{val}}$, TDMA-CBAA inherits CBBA's core consensus promise: termination in $T_{ideal} + N\tau K$ and a conflict-free final assignment. Solution quality for fixed-score episodes is characterized by a conditional optimality statement (Prop.~\ref{prop:optimality}) rather than an unconditional 50\% bound.
+Within the feasibility regime $N\tau \leq T_{\mathrm{val}}$, TDMA-CBAA inherits CBAA's core consensus promise: termination in $T_{ideal} + N\tau K$ and a conflict-free final assignment. Solution quality for fixed-score episodes is characterized by a conditional optimality statement (Prop.~\ref{prop:optimality}) rather than an unconditional 50\% bound.
 Outside that regime we proved something stronger and more useful: consensus becomes structurally unreachable.
 This synchronization--staleness phase transition turns belief expiry from a tuning knob into a hard scalability law---$T_{\mathrm{val}}$ must grow linearly with fleet size---and yields an immediately actionable design rule for swarm engineers.
 

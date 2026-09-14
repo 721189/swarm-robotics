@@ -1,0 +1,48 @@
+﻿:3: This paper asked a question that every practitioner of decentralized task allocation eventually faces: \emph{what survives when CBBA is forced onto a communication-constrained radio abstraction---slotted medium access with stochastic loss and time-limited beliefs?}
+:7: TDMA-CBAA models the swarm's shared channel as slotted medium access with two-stage packet loss and time-stamped beliefs that expire after a validity horizon $T_{\mathrm{val}}$---capturing the collision discipline, stochastic impairment, and forgetting mechanisms found in real deployments, all absent from canonical CBAA.
+:10: Within the feasibility regime $N\tau \leq T_{\mathrm{val}}$, TDMA-CBAA inherits CBAA's core consensus promise: termination in $T_{ideal} + N\tau K$ and a conflict-free final assignment. Solution quality for fixed-score episodes is characterized by a conditional optimality statement (Prop.~\ref{prop:optimality}) rather than an unconditional 50\% bound.
+:18: The broader lesson extends beyond CBBA.
+:5: Concretely, with $\tau = 50$\,ms slots and $T_{\mathrm{val}} = 2$\,s, our analysis caps a fully convergent TDMA-CBAA fleet at $N \leq 40$ drones; larger fleets require either faster slots, hierarchical scheduling (cluster-based TDMA), or validity horizons that scale as $T_{\mathrm{val}} = c\,N\tau$.
+:12: Our results refine, rather than contradict, CBBA theory~\cite{choi2009}: under bounded-delay communication whose bound respects belief expiry, convergence carries over (Thm.~\ref{thm:noiseless}) and the belief-expiry process admits an exact reliability bound (Thm.~\ref{thm:probabilistic}); solution-quality guarantees are treated conditionally (Prop.~\ref{prop:optimality}).
+:13: The phase transition complements asynchronous-CBBA analyses that assume infinite belief persistence; it shows those analyses do not survive the addition of standard forgetting mechanisms.
+:62: \item \textbf{Ideal CBAA}: open channel, zero loss ($\tau \to 0$, $p = 0$)---canonical assumptions~\cite{choi2009} on the single-task auction.
+:65: \item \textbf{TDMA-CBAA} (proposed): slotted access with loss---the full model.
+:67: Comparisons against all four baselines follow the protocol of Sec.~\ref{sec:test-matrix}; headline statistics in Sec.~\ref{sec:results} are reported on the released TDMA-CBAA corpus.
+:6: A standard decentralized answer is the consensus-auction family of Choi, Brunet, and How~\cite{choi2009}: the Consensus-Based Auction Algorithm (CBAA), in which each robot wins a single task, and its bundle-building extension, the Consensus-Based Bundle Algorithm (CBBA), which provably converges to a conflict-free, 50\%-optimal assignment for scoring functions satisfying the Diminishing Marginal Gains (DMG) property, under the paper's stated communication assumptions.
+:7: CBBA and its descendants are widely adopted across multi-robot research prototypes~\cite{nestinger2018cbbaSurvey,verma2021cbbaApplications}.
+:10: CBBA's guarantees, however, rest on an implicit physical assumption: that agents exchange their bid ledgers \emph{perfectly, instantaneously, and simultaneously}.
+:16: Serializing CBBA's message exchanges onto a shared channel introduces \emph{information staleness}: each agent acts on beliefs about teammates that are outdated by up to one full communication frame, and stale beliefs interact destructively with CBBA's conflict-resolution logic.
+:19: To our knowledge, this failure mode---a \emph{synchronization--staleness phase transition} governed by the ratio $N\tau / T_{\mathrm{val}}$---has not been identified in the CBBA literature, despite belief-expiry heuristics being common practice in deployed systems.
+:21: We study a communication-constrained, bundle-size-one variant of the consensus-auction family---the Consensus-Based Auction Algorithm (CBAA)~\cite{choi2009}---which we refer to as \textbf{TDMA-CBAA}, in which:
+:31: We prove that TDMA-CBAA converges to a conflict-free assignment within
+:34: To our knowledge this is the first convergence result for bundle-size-one consensus auctions (CBAA) under slotted medium access with explicit belief expiry.
+:36: Under bounded communication delay with monotonically merged ledgers, we prove convergence to a conflict-free assignment and state precisely under what conditions the resulting utility can be compared against the optimal fixed-score assignment; no unconditional $50\%$ guarantee is claimed for the implemented single-task (CBAA) variant.
+:24: \title{TDMA-CBAA: Communication-Constrained Task Allocation\\ for Drone Swarms with Provable Convergence Guarantees}
+:34: Decentralized task allocation is a cornerstone of autonomous drone swarm operations, and consensus auctions---the Consensus-Based Auction Algorithm (CBAA) and its bundle-building extension, the Consensus-Based Bundle Algorithm (CBBA)---are its canonical decentralized solution, offering convergence guarantees and a 50\% optimality bound under idealized, instantaneous, all-to-all communication.
+:36: We present \textbf{TDMA-CBAA}, a communication-constrained, bundle-size-one member of this consensus-auction family in which agents transmit exclusively within Time Division Multiple Access (TDMA) slots, subject to stochastic packet loss, and maintain time-stamped belief ledgers that expire after a validity horizon $T_{\mathrm{val}}$.
+:37: Our central theoretical result identifies the predicted operating regime for guaranteed convergence under this model: CBAA's consensus dynamics are preserved under TDMA when one full TDMA frame fits inside the belief-validity horizon ($N\tau \leq T_{\mathrm{val}}$).
+:1: \section{Methodology: TDMA-CBAA}\label{sec:methodology}
+:3: TDMA-CBAA interleaves the CBAA single-task consensus auction with a slotted radio discipline and belief management.
+:4: Algorithm~\ref{alg:tdmacbaa} summarizes one simulation frame; the components relative to canonical CBBA---slotted medium access, two-stage packet loss, and belief expiry---are detailed in Sections~\ref{sec:method-slotted}--\ref{sec:method-belief}, followed by the D-TDMA extension in Section~\ref{sec:dtdma}.
+:7: \caption{TDMA-CBAA frame execution (one tick, $\Delta t$)}
+:8: \label{alg:tdmacbaa}
+:38: Each drone executes the CBAA phases locally, restricted to its perceived swarm $\mathcal{P}_i$:
+:53: Auction Algorithm (CBAA)~\cite{choi2009}. Each agent maintains one
+:58: multi-task bundle construction of canonical CBBA.
+:67: Setting $\tau \to 0$ (all agents transmit every frame) yields an unslotted \emph{open channel}; further setting $p_{\mathrm{tx}} = p_{\mathrm{rx}} = 0$ yields the \emph{ideal} channel assumed by canonical CBBA~\cite{choi2009}.
+:33: \bibitem{nestinger2018cbbaSurvey}
+:38: \bibitem{verma2021cbbaApplications}
+:48: \bibitem{johnson2011cbbaTime}
+:50: ``Allowing non-submodular score functions in CBBA,''
+:53: \bibitem{whitten2010cbbaExtensions}
+:3: We report results from the released corpus of $4{,}860$ TDMA-CBAA trials ($324$ configurations, $15$ independent seeds each; Sec.~\ref{sec:test-matrix}) together with the four-baseline ablation sweep ($900$ runs) and the communication--motion isolation ablation of Sec.~\ref{sec:setup-ablation}.
+:12: \caption{Headline metrics over 4{,}860 TDMA-CBAA trials (mean $\pm$ SEM, bootstrap 95\% CI). MTC is right-censored at 50\,s.}
+:106: Ideal CBAA            & $0.34$ & $100\%$   & $1.000$ \\
+:109: TDMA-CBAA (proposed)  & $22.4$ & $61.4\%$  & $0.828$ \\
+:74: The gossip update rule of Algorithm~\ref{alg:tdmacbaa} is monotone in the following sense. For each objective $o_j$, the bid entry stored by agent $d_i$ is nondecreasing over time and equals the maximum of all incoming bids for $o_j$ that $d_i$ has decoded, provided no stored entry is pruned by belief expiry:
+:90: If $N\tau \leq T_{\mathrm{val}}$, TDMA's round-robin gossip delivers, per round, exactly ideal CBAA's message set up to intra-round ordering; ledgers are monotone because pruning never fires (no packet age exceeds $N\tau \leq T_{\mathrm{val}}$).
+:96: where $K$ is the number of gossip rounds ideal CBAA requires, and the agreement persists: verified consensus holds with probability one.
+:216: additional packet-delivery events may still delay the logical CBBA
+:235: conditions of the corresponding CBBA approximation theorem are
+:249: & Ideal CBAA & TDMA-CBAA \\
+:259: \multicolumn{3}{l}{\footnotesize $^{\dagger}$Canonical CBBA stores full path bundles; ours stores flat ledgers.}\\
