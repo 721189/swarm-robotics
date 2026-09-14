@@ -38,7 +38,7 @@ Our central theoretical result identifies the predicted operating regime for gua
 Within this regime we prove that (i) consensus terminates within $T_{TDMA} \leq T_{ideal} + N\tau K$ for $K$ auction rounds, and (ii) the final assignment is conflict-free, with solution quality for fixed-score episodes characterized by a conditional optimality statement rather than an unconditional 50\% bound.
 Outside this regime, we show empirically that expired beliefs trigger cascading allocation erasures that provably prevent consensus---a previously unreported \emph{synchronization--staleness phase transition}.
 We validate our analysis on an open-source benchmark of 4{,}860 simulation runs across 324 configurations (15 independent seeds each; three slot durations, four baseline radio models), spanning swarm sizes of 10--50 drones and packet loss rates up to 30\%, quantifying trade-offs between mean time to consensus ($21.6$\,s, 95\% CI $[21.0,\ 22.2]$, right-censored at 50\,s), coverage efficiency ($0.64$), and per-link packet delivery ratio ($0.83$ aggregate, matching the two-stage channel model to within $10^{-3}$ per condition).
-Code, data, and analysis scripts are publicly released.\footnote{\url{https://github.com/721189/swarm-robotics}}
+Code, data, and analysis scripts will be released upon acceptance.
 \end{abstract}
 
 % ---- INTRODUCTION ----
@@ -66,7 +66,7 @@ Code, data, and analysis scripts are publicly released.\footnote{\url{https://gi
 \input{conclusion}
 
 \section*{Acknowledgment}
-The authors acknowledge the use of AI-assisted tooling during code development and manuscript preparation, consistent with ICRA's AI disclosure policy. All scientific claims, proofs, and experimental results were verified by the authors.
+The authors acknowledge the use of AI-assisted tooling during code development and manuscript preparation. All scientific claims, proofs, and experimental results were verified by the authors.
 
 \bibliographystyle{IEEEtran}
 \input{references}
