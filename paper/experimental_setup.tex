@@ -59,12 +59,12 @@ In addition to first-passage MTC we record a binary \emph{verified-consensus} in
 \subsection{Baseline Radio Models}\label{sec:baselines}
 Four channel models isolate each design decision:
 \begin{enumerate}
-    \item \textbf{Ideal CBBA}: open channel, zero loss ($\tau \to 0$, $p = 0$)---canonical assumptions~\cite{choi2009}.
+    \item \textbf{Ideal CBAA}: open channel, zero loss ($\tau \to 0$, $p = 0$)---canonical assumptions~\cite{choi2009} on the single-task auction.
     \item \textbf{TDMA-only}: slotted access, zero loss---isolates scheduling delay.
     \item \textbf{Loss-only}: open channel, stochastic loss---isolates packet loss.
-    \item \textbf{TDMA-CBBA} (proposed): slotted access with loss---the full model.
+    \item \textbf{TDMA-CBAA} (proposed): slotted access with loss---the full model.
 \end{enumerate}
-Comparisons against all four baselines follow the protocol of Sec.~\ref{sec:test-matrix}; headline statistics in Sec.~\ref{sec:results} are reported on the released TDMA-CBBA corpus.
+Comparisons against all four baselines follow the protocol of Sec.~\ref{sec:test-matrix}; headline statistics in Sec.~\ref{sec:results} are reported on the released TDMA-CBAA corpus.
 
 \subsection{Statistical Methodology}\label{sec:setup-stats}
 We make the statistical unit explicit throughout. Each \emph{configuration} fixes one combination of the five factors (Section~\ref{sec:test-matrix}); each configuration is instantiated over $t = 15$ \emph{independent seeds}. The independent observation is the seed-level trial; aggregate figures across configurations are descriptive, not additional replication. Distinguishing \emph{runs} ($4{,}860$), \emph{seeds} ($15$ per configuration), and \emph{conditions} ($324$) is essential to avoid inflating apparent sample size.

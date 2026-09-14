@@ -71,7 +71,7 @@ Our benchmark records $T_{\mathrm{fp}}$, a binary indicator of verified consensu
 The distinction is decisive for interpreting Sec.~\ref{sec:results}: a swarm may agree momentarily ``in passing'' while being structurally incapable of \emph{holding} agreement.
 
 \begin{lemma}[Monotone ledger merging]\label{lem:monotone}
-The gossip update rule of Algorithm~\ref{alg:tdmacbaa} is monotone in the following sense. For each objective $o_j$, the bid entry stored by agent $d_i$ is nondecreasing over time and equals the maximum of all incoming bids for $o_j$ that $d_i$ has decoded, provided no stored entry is pruned by belief expiry:
+The gossip update rule of Algorithm~\ref{alg:tdmacbba} is monotone in the following sense. For each objective $o_j$, the bid entry stored by agent $d_i$ is nondecreasing over time and equals the maximum of all incoming bids for $o_j$ that $d_i$ has decoded, provided no stored entry is pruned by belief expiry:
 \begin{equation}
     b^{(i)}_j(t{+}) \;=\; \max\Bigl\{ b^{(i)}_j(t),\; \max_{k:\,\mathrm{msg}(k,j)\in \mathcal{M}_i(t)} b_{kj}\Bigr\},
     \label{eq:monotone-merge}
@@ -87,13 +87,13 @@ The receive handler adopts a sender's bid if and only if it is strictly larger t
 Suppose $p_{\mathrm{tx}} = p_{\mathrm{rx}} = 0$ (lossless TDMA), so every belief refreshes exactly once per frame period $N\tau$, and let scores be frozen for the episode (the frozen-score setting of Prop.~\ref{prop:optimality}). Then:
 \begin{enumerate}
     \item[(i)] \textbf{(Feasible regime, $\Lambda \geq 0$.)}
-    If $N\tau \leq T_{\mathrm{val}}$, TDMA's round-robin gossip delivers, per round, exactly ideal CBAA's message set up to intra-round ordering; ledgers are monotone because pruning never fires (no packet age exceeds $N\tau \leq T_{\mathrm{val}}$).
+    If $N\tau \leq T_{\mathrm{val}}$, TDMA's round-robin gossip delivers, per round, exactly ideal CBBA's message set up to intra-round ordering; ledgers are monotone because pruning never fires (no packet age exceeds $N\tau \leq T_{\mathrm{val}}$).
     First-passage agreement therefore occurs within
     \begin{equation}
         T_{\mathrm{fp}} \;\leq\; T_{\mathrm{ideal}} + K \cdot N\tau,
         \label{eq:ttdma-bound}
     \end{equation}
-    where $K$ is the number of gossip rounds ideal CBAA requires, and the agreement persists: verified consensus holds with probability one.
+    where $K$ is the number of gossip rounds ideal CBBA requires, and the agreement persists: verified consensus holds with probability one.
     \item[(ii)] \textbf{(Collapsed regime, $\Lambda = -1$.)}
     If $N\tau > T_{\mathrm{val}}$, every refresh arrives already expired: at decode time the sender entry is older than $T_{\mathrm{val}}$, so ghost pruning removes its wins before they influence the ledger. First-passage agreement may still occur transiently---and empirically does (Sec.~\ref{sec:results})---but it cannot persist: between two consecutive refreshes of any peer, that peer's entries expire and are pruned, forcing disagreement within every frame period. Verified consensus therefore has probability zero.
 \end{enumerate}
@@ -119,7 +119,7 @@ then every received message from a peer $d_j$ necessarily expires
 before the next scheduled transmission opportunity of $d_j$.
 
 Consequently, under the paper's ghost-pruning rule, a peer cannot
-remain continuously present in another agent's perceived swarm.
+remain continuously present in another agent's perceived swarm`.
 Therefore the persistent global-consensus condition of
 Def.~\ref{def:eventual} cannot be maintained for the full swarm
 when $N\geq2$.
@@ -140,9 +140,9 @@ a message received from $d_j$ becomes older than
 $T_{\mathrm{val}}$ before the next possible transmission from
 $d_j$.
 
-By (C3), the message is therefore removed from the receiver's
+By (C3),the message is therefore removed from the receiver's
 perceived swarm before it can be refreshed. The ghost-pruning rule
-then removes ledger entries whose believed winner is that peer. Hence a peer cannot remain persistently represented in every
+then removes ledger entries whose believed winner is that peer.Hence a peer cannot remain persistently represented in every
 receiver's ledger, contradicting the persistent equality required
 by Def.~\ref{def:eventual}. Packet loss cannot improve this condition,
 because a failed transmission only increases the inter-success gap.
@@ -169,7 +169,7 @@ $f_t(k)$ is the probability that after $t$ attempts no run of $s$ consecutive fa
 \end{proof}
 
 \begin{theorem}[Expiry-free episode probability]\label{thm:probabilistic}
-Assume the Diminishing Marginal Gains (DMG) scoring property, slotted access, $0<q<1$, and
+Assume the Diminishing Marginal Gains (DMG) scoring property, slotted access,$0<q<1$,and
 \[
 \Lambda =
 \left\lfloor \frac{T_{\mathrm{val}}}{N\tau}\right\rfloor-1
@@ -224,14 +224,14 @@ question evaluated empirically.
 
 A remaining question is what can be claimed about solution quality when bids arrive stale.
 
-Because agents move while auctions run, scores are time-varying, and we are careful about what can be claimed.
+Because agents move while auctions run,scores are time-varying,and we are careful about what can be claimed.
 
 \begin{proposition}[Conditional optimality statement]
 \label{prop:optimality}
-For a fixed-score episode, if the implemented bundle-size-one
+For a fixed-score episode,ifthe implemented bundle-size-one
 consensus auction terminates at a conflict-free allocation satisfying
-the corresponding greedy exchange condition, then its utility can be
-compared against the optimal assignment for that fixed instance. No general $50\%$ guarantee is claimed here unless the complete
+the corresponding greedy exchange condition,then its utility can be
+compared against the optimal assignment for that fixed instance.No general $50\%$ guarantee is claimed here unless the complete
 conditions of the corresponding CBBA approximation theorem are
 verified for the implemented update rule.
 
@@ -246,7 +246,7 @@ Table~\ref{tab:complexity} compares per-agent costs ($n = |\mathcal{D}|$, $m = |
 \label{tab:complexity}
 \begin{tabular}{@{}lcc@{}}
 \toprule
- & Ideal CBAA & TDMA-CBAA \\
+ & Ideal CBBA & TDMA-CBBA \\
 \midrule
 Auction compute / round & $O(m)$ & $O(m)$ \\
 Ledger merge per message & $O(m)$ & $O(m)$ \\

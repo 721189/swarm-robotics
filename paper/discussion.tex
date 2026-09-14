@@ -2,14 +2,14 @@
 
 \subsection{What the Results Mean for Swarm Designers}
 The synchronization--staleness phase transition (Thm.~\ref{thm:noiseless}(ii)) elevates a routine engineering parameter---how long to remember a teammate's telemetry---into a first-class scalability constraint.
-Concretely, with $\tau = 50$\,ms slots and $T_{\mathrm{val}} = 2$\,s, our analysis caps a fully convergent TDMA-CBBA fleet at $N \leq 40$ drones; larger fleets require either faster slots, hierarchical scheduling (cluster-based TDMA), or validity horizons that scale as $T_{\mathrm{val}} = c\,N\tau$.
+Concretely, with $\tau = 50$\,ms slots and $T_{\mathrm{val}} = 2$\,s, our analysis caps a fully convergent TDMA-CBAA fleet at $N \leq 40$ drones; larger fleets require either faster slots, hierarchical scheduling (cluster-based TDMA), or validity horizons that scale as $T_{\mathrm{val}} = c\,N\tau$.
 We emphasize that this constraint is \emph{structural}, not statistical: beyond the threshold no amount of additional runtime recovers consensus, because ghost pruning deterministically erases allocations faster than gossip can re-establish them.
 
 Equally instructive is what does \emph{not} degrade: per-link PDR follows the analytic channel model independently of swarm logic (Sec.~\ref{sec:results-pdr}), and cohesion remains stable across radio conditions once assignments exist.
 The failure mode is therefore specific and localized---information age versus scheduling period---which is precisely what makes it fixable.
 
 \subsection{Relation to Prior Work}
-Our results refine, rather than contradict, CBBA theory~\cite{choi2009}: under bounded-delay communication whose bound respects belief expiry, all classical guarantees carry over (Thms.~\ref{thm:noiseless}--\ref{thm:probabilistic}).
+Our results refine, rather than contradict, CBBA theory~\cite{choi2009}: under bounded-delay communication whose bound respects belief expiry, convergence carries over (Thm.~\ref{thm:noiseless}) and the belief-expiry process admits an exact reliability bound (Thm.~\ref{thm:probabilistic}); solution-quality guarantees are treated conditionally (Prop.~\ref{prop:optimality}).
 The phase transition complements asynchronous-CBBA analyses that assume infinite belief persistence; it shows those analyses do not survive the addition of standard forgetting mechanisms.
 A demand-assigned D-TDMA extension (slot doubling near threats or objectives) is implemented but excluded from the theoretical claims and benchmark matrix here.
 

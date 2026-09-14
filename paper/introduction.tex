@@ -3,7 +3,7 @@
 Autonomous drone swarms promise transformative capabilities in search and rescue, environmental monitoring, infrastructure inspection, and defense~\cite{chung2018survey,bravo2023swarm}.
 In all of these missions, a central computational problem recurs: \emph{which robot should do which task?}
 Centralized assignment is brittle---it introduces a single point of failure, a communication bottleneck at the leader, and a scalability ceiling that grows with fleet size~\cite{gerkey2004formal,korsah2015comprehensive}.
-A standard decentralized answer is the \textbf{Consensus-Based Bundle Algorithm} (CBBA) of Choi, Brunet, and How~\cite{choi2009}, a consensus auction that provably converges to a conflict-free, 50\%-optimal assignment for scoring functions satisfying the Diminishing Marginal Gains (DMG) property, under the paper's stated communication assumptions.
+A standard decentralized answer is the consensus-auction family of Choi, Brunet, and How~\cite{choi2009}: the Consensus-Based Auction Algorithm (CBAA), in which each robot wins a single task, and its bundle-building extension, the Consensus-Based Bundle Algorithm (CBBA), which provably converges to a conflict-free, 50\%-optimal assignment for scoring functions satisfying the Diminishing Marginal Gains (DMG) property, under the paper's stated communication assumptions.
 CBBA and its descendants are widely adopted across multi-robot research prototypes~\cite{nestinger2018cbbaSurvey,verma2021cbbaApplications}.
 
 \subsection{Motivation: The Communication Gap}
@@ -18,8 +18,7 @@ Worse, when practitioners add the standard engineering safeguard of \emph{belief
 if a full TDMA cycle $N\tau$ exceeds $T_{\mathrm{val}}$, every agent's belief about every teammate expires before it can be refreshed; cascading allocation erasures then race against re-learning, and consensus becomes \emph{structurally unreachable}.
 To our knowledge, this failure mode---a \emph{synchronization--staleness phase transition} governed by the ratio $N\tau / T_{\mathrm{val}}$---has not been identified in the CBBA literature, despite belief-expiry heuristics being common practice in deployed systems.
 \subsection{Our Approach}
-We study a communication-constrained, bundle-size-one CBBA variant,
-which we refer to as \textbf{TDMA-CBBA}, in which:
+We study a communication-constrained, bundle-size-one variant of the consensus-auction family---the Consensus-Based Auction Algorithm (CBAA)~\cite{choi2009}---which we refer to as \textbf{TDMA-CBAA}, in which:
 (i) agents transmit exclusively within assigned Time Division Multiple Access slots of duration $\tau$, eliminating intra-frame collisions by construction;
 (ii) transmissions are subject to independent stochastic packet loss on both transmit and receive legs;
 (iii) each agent maintains a time-stamped ledger of peers' bids and allocations, filtered through a belief-validity horizon $T_{\mathrm{val}}$.
@@ -29,12 +28,12 @@ Rather than treating the radio as an afterthought, we place the interplay betwee
 This paper makes four contributions:
 \begin{enumerate}
     \item \textbf{Convergence theory under scheduled, lossy communication (Thm.~\ref{thm:noiseless}).}
-    We prove that TDMA-CBBA converges to a conflict-free assignment within
+    We prove that TDMA-CBAA converges to a conflict-free assignment within
     $T_{TDMA} \leq T_{ideal} + N\tau K$
     for $K$ auction rounds, provided one full TDMA frame fits within the belief-validity horizon, $N\tau \leq T_{\mathrm{val}}$ (Thm.~\ref{thm:noiseless}(i)).
-    To our knowledge this is the first convergence result for CBBA under slotted medium access with explicit belief expiry.
+    To our knowledge this is the first convergence result for bundle-size-one consensus auctions (CBAA) under slotted medium access with explicit belief expiry.
     \item \textbf{Single-task consensus and a conditional optimality statement (Prop.~\ref{prop:optimality}).}
-    Under bounded communication delay with monotonically merged ledgers, we prove convergence to a conflict-free assignment and state precisely under what conditions the resulting utility can be compared against the optimal fixed-score assignment; no unconditional $50\%$ guarantee is claimed for the implemented single-task variant.
+    Under bounded communication delay with monotonically merged ledgers, we prove convergence to a conflict-free assignment and state precisely under what conditions the resulting utility can be compared against the optimal fixed-score assignment; no unconditional $50\%$ guarantee is claimed for the implemented single-task (CBAA) variant.
     \item \textbf{A synchronization--staleness phase transition (Sec.~\ref{sec:theory-noiseless}(ii), Thm.~\ref{thm:noiseless}).}
     We prove that when $N\tau > T_{\mathrm{val}}$, belief expiry renders global consensus unreachable, and we validate this impossibility result empirically: trials beyond the transition exhibit consensus rates collapsing toward zero while sub-transition trials converge reliably.
     This yields an actionable design rule---scale the validity horizon with the TDMA frame.

@@ -21,7 +21,7 @@
 
 \begin{document}
 
-\title{TDMA-CBBA: Communication-Constrained Task Allocation\\ for Drone Swarms with Provable Convergence Guarantees}
+\title{TDMA-CBAA: Communication-Constrained Task Allocation\\ for Drone Swarms with Provable Convergence Guarantees}
 
 % ---- ANONYMIZED FOR DOUBLE-ANONYMOUS REVIEW ----
 \author{\IEEEauthorblockN{Anonymous Authors}\\
@@ -31,13 +31,13 @@
 
 % ---- ABSTRACT ----
 \begin{abstract}
-Decentralized task allocation is a cornerstone of autonomous drone swarm operations, and the Consensus-Based Bundle Algorithm (CBBA) remains its most widely deployed solution, offering convergence guarantees and a 50\% optimality bound under idealized, instantaneous, all-to-all communication.
+Decentralized task allocation is a cornerstone of autonomous drone swarm operations, and consensus auctions---the Consensus-Based Auction Algorithm (CBAA) and its bundle-building extension, the Consensus-Based Bundle Algorithm (CBBA)---are its canonical decentralized solution, offering convergence guarantees and a 50\% optimality bound under idealized, instantaneous, all-to-all communication.
 Real swarms, however, share a contention-limited radio channel: uncoordinated transmissions collide, packets are lost, and information propagates with bounded but nonzero delay.
-We present \textbf{TDMA-CBBA}, a communication-constrained extension of CBBA in which agents transmit exclusively within Time Division Multiple Access (TDMA) slots, subject to stochastic packet loss, and maintain time-stamped belief ledgers that expire after a validity horizon $T_{\mathrm{val}}$.
+We present \textbf{TDMA-CBAA}, a communication-constrained, bundle-size-one member of this consensus-auction family in which agents transmit exclusively within Time Division Multiple Access (TDMA) slots, subject to stochastic packet loss, and maintain time-stamped belief ledgers that expire after a validity horizon $T_{\mathrm{val}}$.
 Our central theoretical result identifies the predicted operating regime for guaranteed convergence under this model: CBBA's consensus dynamics are preserved under TDMA when one full TDMA frame fits inside the belief-validity horizon ($N\tau \leq T_{\mathrm{val}}$).
-Within this regime we prove that (i) consensus terminates within $T_{TDMA} \leq T_{ideal} + N\tau K$ for $K$ auction rounds, and (ii) the 50\% optimality guarantee of CBBA is preserved despite stale bids.
+Within this regime we prove that (i) consensus terminates within $T_{TDMA} \leq T_{ideal} + N\tau K$ for $K$ auction rounds, and (ii) the final assignment is conflict-free, with solution quality for fixed-score episodes characterized by a conditional optimality statement rather than an unconditional 50\% bound.
 Outside this regime, we show empirically that expired beliefs trigger cascading allocation erasures that provably prevent consensus---a previously unreported \emph{synchronization--staleness phase transition}.
-We validate our analysis on an open-source benchmark of 4{,}860 simulation runs across 324 configurations (15 independent seeds each; three slot durations, four baseline radio models), spanning swarm sizes of 10--50 drones and packet loss rates up to 30\%, quantifying trade-offs between mean time to consensus ($31.5$\,s, 95\% CI $[30.9, 32.1]$, right-censored at 50\,s), coverage efficiency ($0.77$), and per-link packet delivery ratio ($0.94$ at mixed loss).
+We validate our analysis on an open-source benchmark of 4{,}860 simulation runs across 324 configurations (15 independent seeds each; three slot durations, four baseline radio models), spanning swarm sizes of 10--50 drones and packet loss rates up to 30\%, quantifying trade-offs between mean time to consensus ($21.6$\,s, 95\% CI $[21.0,\ 22.2]$, right-censored at 50\,s), coverage efficiency ($0.64$), and per-link packet delivery ratio ($0.83$ aggregate, matching the two-stage channel model to within $10^{-3}$ per condition).
 Code, data, and analysis scripts are publicly released.\footnote{\url{https://github.com/721189/swarm-robotics}}
 \end{abstract}
 

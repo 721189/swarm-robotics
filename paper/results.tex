@@ -1,6 +1,6 @@
 \section{Results}\label{sec:results}
 
-We report results from the released corpus of $4{,}860$ TDMA-CBBA trials ($324$ configurations, $15$ independent seeds each; Sec.~\ref{sec:test-matrix}) together with the four-baseline ablation sweep ($900$ runs) and the communication--motion isolation ablation of Sec.~\ref{sec:setup-ablation}.
+We report results from the released corpus of $4{,}860$ TDMA-CBAA trials ($324$ configurations, $15$ independent seeds each; Sec.~\ref{sec:test-matrix}) together with the four-baseline ablation sweep ($900$ runs) and the communication--motion isolation ablation of Sec.~\ref{sec:setup-ablation}.
 All figures are generated directly from raw CSV by the open-source analysis pipeline; no manual curation is involved.
 
 \subsection{Headline Statistics}
@@ -9,7 +9,7 @@ Every metric rejects normality (Shapiro--Wilk, all $p < 10^{-4}$, $n = 4860$), j
 
 \begin{table}[htbp]
 \centering
-\caption{Headline metrics over 4{,}860 TDMA-CBBA trials (mean $\pm$ SEM, bootstrap 95\% CI). MTC is right-censored at 50\,s.}
+\caption{Headline metrics over 4{,}860 TDMA-CBAA trials (mean $\pm$ SEM, bootstrap 95\% CI). MTC is right-censored at 50\,s.}
 \label{tab:headline}
 \begin{tabular}{@{}lccc@{}}
 \toprule
@@ -25,7 +25,7 @@ Convergence rate & $65.1\%$ & --- \\
 \end{tabular}
 \end{table}
 
-The aggregate PDR of $0.938$ is consistent with the two-stage loss model of Sec.~\ref{sec:method-loss} averaged over the loss sweep, providing an end-to-end sanity check that the radio simulator behaves as designed (see Sec.~\ref{sec:results-pdr}).
+The aggregate PDR of $0.827$ is consistent with the two-stage loss model of Sec.~\ref{sec:method-loss}: averaging the per-loss predictions $1.0,\ 0.926,\ 0.786,\ 0.595$ over the corpus's loss mixture reproduces $0.827$, and per-condition errors are below $10^{-3}$ (Sec.~\ref{sec:results-pdr}), providing an end-to-end sanity check that the radio simulator behaves as designed.
 
 \subsection{Convergence Behavior}
 Fig.~\ref{fig:mtc_vs_swarm} shows MTC against swarm size.
@@ -93,19 +93,20 @@ Within TDMA conditions we use regression as a descriptive mechanism analysis rat
 Table~\ref{tab:ablation} summarizes the four-baseline sweep, which refines the causal decomposition of Sec.~\ref{sec:baselines}: moving from ideal (MTC $0.34$\,s) to TDMA-only raises MTC to
 $3.46$\,s (converging $100\%$); adding loss pushes TDMA to $22.4$\,s
 / $61.4\%$. Crucially, open-channel loss-only converges $100\%$ at every loss level---fresh every-frame broadcasting defeats information expiry, isolating belief staleness as the mechanism that breaks TDMA operation.
+Because the ablation holds the topology fixed ($M{=}5$, $k{=}2$, $\tau{=}50$\,ms) and varies only $N \times p_{\mathrm{tx}}$ with 30 seeds per condition, whereas Table~\ref{tab:headline} aggregates the full 324-configuration factorial at 15 seeds, the two tables' absolute values are not directly comparable; the differing sampling explains the modest shift in TDMA-with-loss MTC ($22.4$\,s here vs.\ $21.6$\,s corpus mean) while the qualitative ordering across baselines is preserved.
 
 \begin{table}[htbp]
 \centering
-\caption{Four-baseline ablation ($N \in \{10,20,30,50\}$). MTC is right-censored at 50\,s.}
+\caption{Four-baseline ablation ($N \in \{10,30,50\}$; $M{=}5$, $k{=}2$, $\tau{=}50$\,ms fixed; 30 independent seeds per condition). MTC is right-censored at 50\,s.}
 \label{tab:ablation}
 \begin{tabular}{@{}lccc@{}}
 \toprule
 Baseline & MTC (s) & Convergence & PDR \\
 \midrule
-Ideal CBBA            & $0.34$ & $100\%$   & $1.000$ \\
+Ideal CBAA            & $0.34$ & $100\%$   & $1.000$ \\
 Loss-only (open ch.)  & $0.47$ & $100\%$   & $0.829$ \\
 TDMA-only             & $3.46$ & $100\%$   & $1.000$ \\
-TDMA-CBBA (proposed)  & $22.4$ & $61.4\%$  & $0.828$ \\
+TDMA-CBAA (proposed)  & $22.4$ & $61.4\%$  & $0.828$ \\
 \bottomrule
 \end{tabular}
 \end{table}

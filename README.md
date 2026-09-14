@@ -12,7 +12,7 @@ Link to live demo https://swarm-robotics-cufdk4uidsgg22595mggw3.streamlit.app/
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Streamlit](https://img.shields.io/badge/Streamlit-Live-red.svg)](https://swarm-robotics.streamlit.app/)
 
- A Python-based multi-agent simulation exploring how complex collective intelligence emerges from simple, local interactions — inspired by biological systems like ant colonies, bird flocking, and drone swarms. This is the companion codebase for the paper *"TDMA-CBBA: Communication-Constrained Task Allocation for Drone Swarms with Provable Convergence Guarantees"* (see `paper/`).
+ A Python-based multi-agent simulation exploring how complex collective intelligence emerges from simple, local interactions — inspired by biological systems like ant colonies, bird flocking, and drone swarms. This is the companion codebase for the paper *"TDMA-CBAA: Communication-Constrained Task Allocation for Drone Swarms with Provable Convergence Guarantees"* (see `paper/`).
 
 **Built from scratch by Shivam Singh, starting from zero Python knowledge.**
 
@@ -27,7 +27,7 @@ Simulates a swarm of 10–50 autonomous robots that:
 - Make decisions based only on local information (no central controller)
 - Self-organize using **Reynolds Rules**: Cohesion, Separation, Alignment
 - Partition space using **Voronoi tessellation** for zero-overlap coverage
-- **Allocate tasks using a single-task CBBA variant** (bundle-size-one Consensus-Based Bundle Algorithm)
+- **Allocate tasks using a single-task CBAA variant** (the bundle-size-one member of the CBBA family)
 - **Communicate via an event-driven TDMA scheduler** with sub-DT slot fidelity, two-stage packet loss, and drone failure recovery
 
 ---

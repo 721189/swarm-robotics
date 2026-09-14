@@ -26,10 +26,10 @@ COLORS = {
     "fine_sweep_p0.15": "#d62728",
 }
 LABELS = {
-    "ideal_omni": "Ideal CBBA",
+    "ideal_omni": "Ideal CBAA",
     "no_tdma_packet_loss": "Loss-only (open ch.)",
     "tdma_clean": "TDMA-only",
-    "tdma_packet_loss": "TDMA-CBBA (proposed)",
+    "tdma_packet_loss": "TDMA-CBAA (proposed)",
 }
 
 base = pd.read_csv(os.path.join(ROOT, "benchmark", "results", "baseline_sweep.csv"))

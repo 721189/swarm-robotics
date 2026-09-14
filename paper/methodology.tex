@@ -1,11 +1,11 @@
-\section{Methodology: TDMA-CBBA}\label{sec:methodology}
+\section{Methodology: TDMA-CBAA}\label{sec:methodology}
 
-TDMA-CBBA interleaves CBBA's two-phase consensus-auction loop with a slotted radio discipline and belief management.
-Algorithm~\ref{alg:tdmacbba} summarizes one simulation frame; the components relative to canonical CBBA---slotted medium access, two-stage packet loss, and belief expiry---are detailed in Sections~\ref{sec:method-slotted}--\ref{sec:method-belief}, followed by the D-TDMA extension in Section~\ref{sec:dtdma}.
+TDMA-CBAA interleaves the CBAA single-task consensus auction with a slotted radio discipline and belief management.
+Algorithm~\ref{alg:tdmacbaa} summarizes one simulation frame; the components relative to canonical CBBA---slotted medium access, two-stage packet loss, and belief expiry---are detailed in Sections~\ref{sec:method-slotted}--\ref{sec:method-belief}, followed by the D-TDMA extension in Section~\ref{sec:dtdma}.
 
 \begin{algorithm}[t]
-\caption{TDMA-CBBA frame execution (one tick, $\Delta t$)}
-\label{alg:tdmacbba}
+\caption{TDMA-CBAA frame execution (one tick, $\Delta t$)}
+\label{alg:tdmacbaa}
 \begin{algorithmic}[1]
 \State $t \gets t + \Delta t$
 \Statex \Comment{// Phase 1: Radio arbitration}
@@ -48,8 +48,10 @@ Drone $i$ evaluates each objective $o_j$ whose score satisfies $c_{ij} > \mathca
 Upon receiving a broadcast from peer $k$, drone $i$ performs an element-wise monotone merge: if the incoming bid exceeds its own for some $o_j$, it adopts both that bid and the sender's winner entry.
 If the adopted winner displaces $i$'s own assignment ($a_i = o_j$ but $\mathcal{W}_i(o_j) \neq i$), the outbid drone immediately releases $a_i \leftarrow \varnothing$.
 
-The released implementation uses a single-task, bundle-size-one
-CBBA variant. Each agent maintains one active task and exchanges
+The released implementation is the single-task, bundle-size-one
+member of the consensus-auction family, i.e., the Consensus-Based
+Auction Algorithm (CBAA)~\cite{choi2009}. Each agent maintains one
+active task and exchanges
 winner--bid pairs through the communication layer. The implementation
 therefore captures the consensus and communication dynamics relevant
 to the present study, but does not claim to implement the full
